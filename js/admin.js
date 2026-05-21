@@ -40,6 +40,7 @@ function showPage(page) {
 
   if (page === 'events') loadEvents();
   if (page === 'users') loadUsers();
+  if (page === 'task-templates') loadGlobalTasks();
 }
 
 function switchTab(tab) {
@@ -155,20 +156,29 @@ async function createEvent() {
   if (!name) { showToast(t('err_required'), 'error'); return; }
 
   try {
-    // Create event doc
     const evRef = await db.collection('events').add({
       name, description: desc, date, status: 'active',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: new Date().toISOString()
     });
 
-    // Initialize 15 tasks for this event
+    // Load global task templates (inherit images/files/points)
+    const templateSnap = await db.collection('taskTemplates').orderBy('id').get();
     const batch = db.batch();
-    CTF_TASKS_TEMPLATE.forEach(task => {
-      const ref = db.collection('events').doc(evRef.id).collection('tasks').doc(String(task.id));
-      batch.set(ref, {
-        ...task, images: [], files: [], points: task.points
+
+    if (!templateSnap.empty) {
+      // Use saved global templates
+      templateSnap.forEach(doc => {
+        const ref = db.collection('events').doc(evRef.id).collection('tasks').doc(doc.id);
+        batch.set(ref, { ...doc.data() });
       });
-    });
+    } else {
+      // First event ever: use JS defaults + save as global templates
+      CTF_TASKS_TEMPLATE.forEach(task => {
+        const taskData = { ...task, images: [], files: [], points: task.points };
+        batch.set(db.collection('events').doc(evRef.id).collection('tasks').doc(String(task.id)), taskData);
+        batch.set(db.collection('taskTemplates').doc(String(task.id)), taskData);
+      });
+    }
     await batch.commit();
 
     closeModal();
@@ -368,13 +378,25 @@ async function saveTaskEdit(taskId) {
   });
 
   try {
+    // Update in current event
     await db.collection('events').doc(currentEventId).collection('tasks').doc(String(taskId)).update({ points, images, files });
+    // Also update global template so future events inherit these settings
+    await db.collection('taskTemplates').doc(String(taskId)).update({ points, images, files });
     currentTasksData[String(taskId)] = { ...currentTasksData[String(taskId)], points, images, files };
     closeModal();
-    showToast('Zadanie zaktualizowane!', 'success');
+    showToast('Zadanie zaktualizowane! Szablon globalny też zapisany.', 'success');
     loadAdminTasks(currentEventId);
   } catch (e) {
-    showToast(t('err_generic'), 'error');
+    // If taskTemplate doesn't exist yet, create it
+    try {
+      const taskData = currentTasksData[String(taskId)];
+      await db.collection('taskTemplates').doc(String(taskId)).set({ ...taskData, points, images, files });
+      closeModal();
+      showToast('Zadanie zaktualizowane!', 'success');
+      loadAdminTasks(currentEventId);
+    } catch (e2) {
+      showToast(t('err_generic'), 'error');
+    }
   }
 }
 
@@ -389,6 +411,166 @@ async function endEvent() {
       showToast('Wydarzenie zakończone', 'success');
     } catch (e) { showToast(t('err_generic'), 'error'); }
   });
+}
+
+// ============================================================
+// GLOBAL TASK TEMPLATES
+// ============================================================
+async function loadGlobalTasks() {
+  const container = document.getElementById('global-tasks-list');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+
+  try {
+    let snap = await db.collection('taskTemplates').orderBy('id').get();
+
+    // If no templates exist yet, initialize from JS defaults
+    if (snap.empty) {
+      const batch = db.batch();
+      CTF_TASKS_TEMPLATE.forEach(task => {
+        batch.set(db.collection('taskTemplates').doc(String(task.id)), {
+          ...task, images: [], files: [], points: task.points
+        });
+      });
+      await batch.commit();
+      snap = await db.collection('taskTemplates').orderBy('id').get();
+    }
+
+    container.innerHTML = '';
+    const isEN = currentLang === 'en';
+    const tasksMap = {};
+    snap.forEach(doc => { tasksMap[doc.id] = { ...doc.data() }; });
+    snap.forEach(doc => {
+      const task = doc.data();
+      const taskName = isEN ? (task.nameEn || task.name) : task.name;
+      const stageLabel = isEN ? (task.stageNameEn || task.stageName) : task.stageName;
+      const wrap = document.createElement('div');
+      wrap.className = 'task-card';
+      wrap.innerHTML = `
+        <div class="task-header" onclick="toggleGlobalTask(${task.id})">
+          <div class="task-num">${task.id}</div>
+          <div class="task-title-wrap">
+            <div class="task-name">${taskName}</div>
+            <div class="task-stage">${task.stage} · ${stageLabel}</div>
+          </div>
+          <span class="task-points">${task.points} pts</span>
+          <button class="btn-secondary btn-sm" onclick="event.stopPropagation();openEditGlobalTask(${task.id})" style="margin-left:8px">✏ Edytuj</button>
+          <span class="task-chevron" id="gchev-${task.id}">▼</span>
+        </div>
+        <div class="task-body" id="gtask-body-${task.id}" style="display:none">
+          <div class="admin-answer">✓ ${t('correct_answer')} <strong>${task.answer}</strong></div>
+          ${task.images && task.images.length > 0 ? `
+            <div class="task-images" style="margin-top:12px">
+              ${task.images.map(img => `<img class="task-thumb" src="${img.url}" alt="${img.name}" onclick="openLightbox('${img.url}')">`).join('')}
+            </div>` : '<div style="color:var(--text3);font-size:0.8rem;margin-top:8px">Brak obrazków</div>'}
+          ${task.files && task.files.length > 0 ? `
+            <div class="task-files" style="margin-top:8px">
+              ${task.files.map(f => `<a href="${f.url}" target="_blank" class="task-file">📎 ${f.name}</a>`).join('')}
+            </div>` : '<div style="color:var(--text3);font-size:0.8rem;margin-top:4px">Brak plików</div>'}
+        </div>`;
+      container.appendChild(wrap);
+    });
+    // Store for editing
+    window._globalTasksMap = tasksMap;
+  } catch(e) {
+    console.error(e);
+    container.innerHTML = `<p style="color:var(--danger)">${t('err_generic')}</p>`;
+  }
+}
+
+function toggleGlobalTask(id) {
+  const body = document.getElementById(`gtask-body-${id}`);
+  const chev = document.getElementById(`gchev-${id}`);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chev.classList.toggle('open', !open);
+}
+
+function openEditGlobalTask(taskId) {
+  const task = (window._globalTasksMap || {})[String(taskId)];
+  if (!task) return;
+
+  createModal(`Edytuj szablon globalny — Zadanie ${taskId}`, `
+    <div style="background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.8rem;color:var(--accent)">
+      ℹ Zmiany będą stosowane do wszystkich nowych wydarzeń
+    </div>
+    <div class="form-group">
+      <label>${t('task_points')}</label>
+      <input type="number" id="gedit-points" value="${task.points}" min="0" step="10">
+    </div>
+    <div class="form-group">
+      <label>${t('task_images')} (URL)</label>
+      <div id="gimages-list">
+        ${(task.images || []).map((img, i) => `
+          <div style="display:flex;gap:8px;margin-bottom:6px" id="gimg-row-${i}">
+            <input type="text" value="${img.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL obrazka...">
+            <button class="btn-danger btn-sm" onclick="document.getElementById('gimg-row-${i}').remove()">✕</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn-secondary btn-sm" onclick="addGImageRow()" style="margin-top:6px">+ Dodaj obrazek</button>
+    </div>
+    <div class="form-group">
+      <label>${t('task_files')} (URL)</label>
+      <div id="gfiles-list">
+        ${(task.files || []).map((f, i) => `
+          <div style="display:flex;gap:8px;margin-bottom:6px" id="gfile-row-${i}">
+            <input type="text" value="${f.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL pliku...">
+            <input type="text" value="${f.name}" style="width:140px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="Nazwa pliku">
+            <button class="btn-danger btn-sm" onclick="document.getElementById('gfile-row-${i}').remove()">✕</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn-secondary btn-sm" onclick="addGFileRow()" style="margin-top:6px">+ Dodaj plik</button>
+    </div>
+  `, [
+    { label: t('cancel'), cls: 'btn-secondary', action: 'close' },
+    { label: '💾 Zapisz szablon', cls: 'btn-primary', action: () => saveGlobalTask(taskId) }
+  ], '640px');
+}
+
+function addGImageRow() {
+  const list = document.getElementById('gimages-list');
+  const i = list.children.length;
+  const row = document.createElement('div');
+  row.id = `gimg-row-${i}`;
+  row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px';
+  row.innerHTML = `<input type="text" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL obrazka..."><button class="btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+
+function addGFileRow() {
+  const list = document.getElementById('gfiles-list');
+  const i = list.children.length;
+  const row = document.createElement('div');
+  row.id = `gfile-row-${i}`;
+  row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px';
+  row.innerHTML = `<input type="text" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL pliku..."><input type="text" style="width:140px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="Nazwa pliku"><button class="btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+
+async function saveGlobalTask(taskId) {
+  const points = parseInt(document.getElementById('gedit-points').value) || 0;
+  const images = [];
+  document.querySelectorAll('#gimages-list [id^="gimg-row-"]').forEach(row => {
+    const url = row.querySelector('input').value.trim();
+    if (url) images.push({ url, name: url.split('/').pop() });
+  });
+  const files = [];
+  document.querySelectorAll('#gfiles-list [id^="gfile-row-"]').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const url = inputs[0]?.value.trim();
+    const name = inputs[1]?.value.trim() || url?.split('/').pop() || 'file';
+    if (url) files.push({ url, name });
+  });
+
+  try {
+    await db.collection('taskTemplates').doc(String(taskId)).update({ points, images, files });
+    if (window._globalTasksMap) window._globalTasksMap[String(taskId)] = { ...window._globalTasksMap[String(taskId)], points, images, files };
+    closeModal();
+    showToast('Szablon globalny zapisany! Nowe wydarzenia odziedziczą te ustawienia.', 'success');
+    loadGlobalTasks();
+  } catch(e) {
+    showToast(t('err_generic'), 'error');
+  }
 }
 
 // ============================================================
