@@ -10,8 +10,8 @@
   --surface2: #1c2533;
   --border: #1e2d3d;
   --border2: #243447;
-  --accent: #00d4ff;
-  --accent2: #00ff88;
+  --accent: #2ecc71;
+  --accent2: #27ae60;
   --accent3: #ff6b35;
   --accent4: #f7c948;
   --text: #c9d8e8;
@@ -782,3 +782,20 @@ body {
 }
 .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
 .empty-state p { font-size: 0.9rem; }
+
+/* ===========================
+   LOGO STYLES
+   =========================== */
+.hero-logo-wrap {
+  flex-shrink: 0; width: 120px;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 4px;
+}
+.hero-logo-img {
+  width: 110px; height: auto;
+  filter: drop-shadow(0 4px 20px rgba(46,204,113,0.25));
+  animation: float 6s ease-in-out infinite;
+}
+.sidebar-logo-img {
+  width: 32px; height: 32px; object-fit: contain;
+}

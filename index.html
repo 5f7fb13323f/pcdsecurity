@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CyberBrew CTF</title>
+  <title>Browar pod kontrolą — CTF</title>
   <link rel="stylesheet" href="css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -14,11 +14,9 @@
   <script src="js/i18n.js"></script>
 </head>
 <body class="landing">
-  <!-- Animated background grid -->
   <div class="bg-grid"></div>
   <div class="scan-line"></div>
 
-  <!-- Language toggle -->
   <div class="lang-toggle">
     <button onclick="setLang('pl')" id="btn-pl" class="active">PL</button>
     <span>/</span>
@@ -26,21 +24,15 @@
   </div>
 
   <main class="landing-main">
-    <!-- Logo / Title -->
     <div class="landing-hero">
-      <div class="hex-logo">
-        <svg viewBox="0 0 100 115" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="50,5 95,30 95,85 50,110 5,85 5,30" fill="none" stroke="var(--accent)" stroke-width="2"/>
-          <polygon points="50,15 85,35 85,80 50,100 15,80 15,35" fill="none" stroke="var(--accent2)" stroke-width="1" opacity="0.5"/>
-          <text x="50" y="55" text-anchor="middle" font-family="Share Tech Mono" font-size="18" fill="var(--accent)">CTF</text>
-          <text x="50" y="72" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="var(--accent2)">CYBER</text>
-        </svg>
+      <div class="hero-logo-wrap">
+        <img src="logo.png" alt="PCD Security" class="hero-logo-img">
       </div>
       <div class="hero-text">
         <div class="hero-tag" data-i18n="hero_tag">// INDUSTRIAL CYBERSECURITY</div>
         <h1 class="hero-title">
-          <span class="title-line1">CyberBrew</span>
-          <span class="title-line2" data-i18n="hero_title2">CTF Workshop</span>
+          <span class="title-line1" data-i18n="hero_title1">Browar pod kontrolą</span>
+          <span class="title-line2" data-i18n="hero_title2">Cyberbezpieczeństwo produkcji</span>
         </h1>
         <p class="hero-desc" data-i18n="hero_desc">
           Dwuetapowy scenariusz Capture The Flag z zakresu cyberbezpieczeństwa przemysłowego (ICS/OT). Wciel się w rolę analityka Incident Response i rozwiąż incydent w inteligentnym browarze.
@@ -48,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Active events -->
     <div class="events-section" id="events-section">
       <h2 class="section-title" data-i18n="active_events">Aktywne wydarzenia</h2>
       <div id="events-list" class="events-grid">
@@ -58,14 +49,13 @@
       </div>
     </div>
 
-    <!-- Login panel -->
     <div class="login-panel" id="login-panel">
       <div class="login-card">
         <div class="login-header">
           <div class="terminal-dots">
             <span></span><span></span><span></span>
           </div>
-          <span class="terminal-title">admin@cyberbrew:~$</span>
+          <span class="terminal-title">admin@pcdsecurity:~$</span>
         </div>
         <div class="login-body">
           <h3 data-i18n="admin_panel">Panel Administratora</h3>
@@ -95,9 +85,10 @@
   </main>
 
   <footer class="landing-footer">
-    <span data-i18n="footer_text">CyberBrew CTF Platform</span>
+    <img src="logo.png" alt="PCD Security" style="height:22px;vertical-align:middle;margin-right:10px;opacity:0.6">
+    <span data-i18n="footer_text">PCD Security</span>
     <span class="footer-sep">|</span>
-    <span data-i18n="footer_sub">ICS/OT Security Workshop</span>
+    <span data-i18n="footer_sub">Cyberbezpieczeństwo produkcji — CTF Workshop</span>
   </footer>
 
   <script src="js/auth.js"></script>

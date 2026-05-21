@@ -5,8 +5,9 @@
 const TRANSLATIONS = {
   pl: {
     // Landing
-    hero_tag: "// INDUSTRIAL CYBERSECURITY",
-    hero_title2: "CTF Workshop",
+    hero_tag: "// CYBERBEZPIECZEŃSTWO PRZEMYSŁOWE",
+    hero_title1: "Browar pod kontrolą",
+    hero_title2: "Cyberbezpieczeństwo produkcji",
     hero_desc: "Dwuetapowy scenariusz Capture The Flag z zakresu cyberbezpieczeństwa przemysłowego (ICS/OT). Wciel się w rolę analityka Incident Response i rozwiąż incydent w inteligentnym browarze.",
     active_events: "Aktywne wydarzenia",
     admin_panel: "Panel Administratora",
@@ -15,8 +16,8 @@ const TRANSLATIONS = {
     login_btn: "Zaloguj się",
     participant_q: "Jesteś uczestnikiem?",
     login_here: "Zaloguj się tutaj",
-    footer_text: "CyberBrew CTF Platform",
-    footer_sub: "ICS/OT Security Workshop",
+    footer_text: "PCD Security",
+    footer_sub: "Cyberbezpieczeństwo produkcji — CTF Workshop",
 
     // Common
     save: "Zapisz",
@@ -116,16 +117,37 @@ const TRANSLATIONS = {
     password_changed: "Hasło zmienione!",
     passwords_mismatch: "Hasła nie są zgodne",
 
+    // Narrative stages
+    stage1_name: "ETAP 1: Zasłona Dymna",
+    stage1_sub: "Atak Replay na Warzelni",
+    stage2_name: "ETAP 2: Prawdziwy Cel",
+    stage2_sub: "Brewery Incident Response",
+
     // Errors
     err_login: "Nieprawidłowy login lub hasło",
     err_required: "To pole jest wymagane",
     err_generic: "Wystąpił błąd. Spróbuj ponownie.",
     err_no_permission: "Brak uprawnień",
+
+    // Scoreboard page
+    sb_auto_refresh: "Auto-odświeżanie co 15 sekund",
+    sb_last_refresh: "Ostatnie odświeżenie",
+    sb_no_data: "Brak uczestników z punktami",
+    sb_load_error: "Błąd ładowania danych",
+    sb_event_missing: "Brak ID wydarzenia",
+    sb_finished: "ZAKOŃCZONE",
+    sb_rank: "Miejsce",
+    sb_participant: "Uczestnik",
+    sb_score: "Wynik",
+    sb_solved: "Rozwiązanych",
+    sb_refresh: "↻ Odśwież",
+    sb_you: "(Ty)",
   },
   en: {
     // Landing
     hero_tag: "// INDUSTRIAL CYBERSECURITY",
-    hero_title2: "CTF Workshop",
+    hero_title1: "Brewery Under Attack",
+    hero_title2: "Production Cybersecurity",
     hero_desc: "A two-stage Capture The Flag scenario in Industrial Cybersecurity (ICS/OT). Step into the role of an Incident Response analyst and solve a security incident in a smart brewery.",
     active_events: "Active Events",
     admin_panel: "Administrator Panel",
@@ -134,8 +156,8 @@ const TRANSLATIONS = {
     login_btn: "Log in",
     participant_q: "Are you a participant?",
     login_here: "Log in here",
-    footer_text: "CyberBrew CTF Platform",
-    footer_sub: "ICS/OT Security Workshop",
+    footer_text: "PCD Security",
+    footer_sub: "Production Cybersecurity — CTF Workshop",
 
     // Common
     save: "Save",
@@ -235,11 +257,31 @@ const TRANSLATIONS = {
     password_changed: "Password changed!",
     passwords_mismatch: "Passwords do not match",
 
+    // Narrative stages
+    stage1_name: "STAGE 1: Smoke Screen",
+    stage1_sub: "Replay Attack on the Brewery",
+    stage2_name: "STAGE 2: The Real Target",
+    stage2_sub: "Brewery Incident Response",
+
     // Errors
     err_login: "Invalid username or password",
     err_required: "This field is required",
     err_generic: "An error occurred. Please try again.",
     err_no_permission: "Permission denied",
+
+    // Scoreboard page
+    sb_auto_refresh: "Auto-refresh every 15 seconds",
+    sb_last_refresh: "Last refresh",
+    sb_no_data: "No participants with points yet",
+    sb_load_error: "Error loading data",
+    sb_event_missing: "Missing event ID",
+    sb_finished: "FINISHED",
+    sb_rank: "Rank",
+    sb_participant: "Participant",
+    sb_score: "Score",
+    sb_solved: "Solved",
+    sb_refresh: "↻ Refresh",
+    sb_you: "(You)",
   }
 };
 
@@ -266,11 +308,13 @@ function setLang(lang) {
   document.querySelectorAll('[data-i18n-ph]').forEach(el => {
     el.placeholder = t(el.getAttribute('data-i18n-ph'));
   });
-  // Update lang buttons
   document.querySelectorAll('#btn-pl, #btn-en').forEach(btn => {
     btn.classList.toggle('active', btn.id === `btn-${lang}`);
   });
+  // Re-render tasks if participant page
+  if (typeof renderTasks === 'function' && tasksData && tasksData.length) renderTasks();
+  // Re-render admin tasks if admin page
+  if (typeof loadAdminTasks === 'function' && currentEventId) loadAdminTasks(currentEventId);
 }
 
-// Auto-apply on page load
 document.addEventListener('DOMContentLoaded', () => setLang(currentLang));

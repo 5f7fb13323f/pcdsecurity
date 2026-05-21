@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scoreboard — CyberBrew CTF</title>
+  <title>Scoreboard — Browar pod kontrolą CTF</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -19,32 +19,29 @@
       max-width: 900px; margin: 0 auto; padding: 40px 24px;
       position: relative; z-index: 2;
     }
-    .sb-header {
-      text-align: center; margin-bottom: 40px;
-    }
+    .sb-header { text-align: center; margin-bottom: 40px; }
+    .sb-logo { width: 70px; height: auto; margin-bottom: 16px; filter: drop-shadow(0 4px 12px rgba(46,204,113,0.3)); }
+    .sb-org { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text3); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
     .sb-title {
       font-family: var(--font-display); font-size: 2.5rem; font-weight: 800;
       background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .sb-event-name {
-      font-family: var(--font-mono); color: var(--accent2); font-size: 1rem;
-      margin-top: 8px;
-    }
+    .sb-event-name { font-family: var(--font-mono); color: var(--accent); font-size: 1rem; margin-top: 8px; }
     .live-indicator {
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+      background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3);
       border-radius: 20px; padding: 4px 14px; font-size: 0.75rem;
-      color: var(--accent2); font-family: var(--font-mono); margin-top: 12px;
+      color: var(--accent); font-family: var(--font-mono); margin-top: 12px;
     }
-    .live-dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; animation: pulse-dot 1.5s infinite; }
+    .live-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse-dot 1.5s infinite; }
     .finished-badge {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(122,146,169,0.1); border: 1px solid var(--border);
       border-radius: 20px; padding: 4px 14px; font-size: 0.75rem;
       color: var(--text3); font-family: var(--font-mono); margin-top: 12px;
     }
+    .sb-controls { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
     .sb-table { width: 100%; border-collapse: collapse; }
     .sb-table th {
       text-align: left; padding: 12px 20px;
@@ -52,44 +49,53 @@
       text-transform: uppercase; letter-spacing: 0.12em;
       border-bottom: 2px solid var(--border2);
     }
-    .sb-table td {
-      padding: 18px 20px; border-bottom: 1px solid var(--border);
-    }
+    .sb-table td { padding: 18px 20px; border-bottom: 1px solid var(--border); }
     .sb-table tbody tr { transition: background 0.2s; }
     .sb-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
     .rank-medal { font-size: 1.4rem; }
     .player-name { font-size: 1.1rem; font-weight: 600; }
-    .player-score { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--accent2); }
+    .player-score { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--accent); }
     .solved-bar-wrap { margin-top: 4px; }
-    .sb-refresh {
-      text-align: center; margin-top: 20px;
-      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3);
-    }
+    .sb-refresh-info { text-align: center; margin-top: 20px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); }
     .top-row td { border-bottom: 2px solid var(--border2); }
     .rank-1 .player-name { color: var(--accent4); }
     .rank-2 .player-name { color: #c0c0c0; }
     .rank-3 .player-name { color: #cd7f32; }
+    .lang-toggle { position: fixed; top: 20px; right: 24px; z-index: 100; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text3); }
+    .lang-toggle button { background: none; border: none; cursor: pointer; color: var(--text3); font-family: var(--font-mono); font-size: 0.85rem; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+    .lang-toggle button:hover, .lang-toggle button.active { color: var(--accent); background: rgba(46,204,113,0.08); }
   </style>
 </head>
 <body>
   <div class="bg-grid"></div>
   <div class="scan-line"></div>
 
+  <div class="lang-toggle">
+    <button onclick="setLang('pl');reloadSb()" id="btn-pl" class="active">PL</button>
+    <span>/</span>
+    <button onclick="setLang('en');reloadSb()" id="btn-en">EN</button>
+  </div>
+
   <div class="scoreboard-page">
     <div class="sb-header">
-      <div class="sb-title">🏆 Scoreboard</div>
+      <img src="../logo.png" alt="PCD Security" class="sb-logo">
+      <div class="sb-org">PCD Security</div>
+      <div class="sb-title" id="sb-main-title">🏆 Scoreboard</div>
       <div class="sb-event-name" id="sb-event-name">Loading...</div>
       <div id="sb-status-badge" class="live-indicator"><div class="live-dot"></div> LIVE</div>
+      <div class="sb-controls">
+        <button class="btn-secondary btn-sm" onclick="fetchScores()" id="sb-refresh-btn">↻ Odśwież</button>
+      </div>
     </div>
 
     <div class="card">
       <table class="sb-table">
         <thead>
           <tr>
-            <th style="width:60px">Miejsce</th>
-            <th>Uczestnik</th>
-            <th>Wynik</th>
-            <th>Rozwiązanych</th>
+            <th style="width:60px" id="th-rank">Miejsce</th>
+            <th id="th-participant">Uczestnik</th>
+            <th id="th-score">Wynik</th>
+            <th id="th-solved">Rozwiązanych</th>
           </tr>
         </thead>
         <tbody id="sb-tbody">
@@ -98,7 +104,7 @@
       </table>
     </div>
 
-    <div class="sb-refresh" id="sb-refresh-info">Auto-odświeżanie co 15 sekund</div>
+    <div class="sb-refresh-info" id="sb-refresh-info"></div>
   </div>
 
   <script>
@@ -107,12 +113,27 @@
     let eventInfo = null;
     let refreshTimer = null;
 
+    function reloadSb() {
+      updateSbTexts();
+      if (eventInfo) fetchScores();
+    }
+
+    function updateSbTexts() {
+      document.getElementById('th-rank').textContent = t('sb_rank');
+      document.getElementById('th-participant').textContent = t('sb_participant');
+      document.getElementById('th-score').textContent = t('sb_score');
+      document.getElementById('th-solved').textContent = t('sb_solved');
+      document.getElementById('sb-refresh-btn').textContent = t('sb_refresh');
+      if (eventInfo && eventInfo.status !== 'finished') {
+        document.getElementById('sb-refresh-info').textContent = t('sb_auto_refresh');
+      }
+    }
+
     async function loadScoreboardPage() {
       if (!eventId) {
-        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">Brak ID wydarzenia</td></tr>`;
+        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">${t('sb_event_missing')}</td></tr>`;
         return;
       }
-
       try {
         const evDoc = await db.collection('events').doc(eventId).get();
         if (!evDoc.exists) throw new Error('not found');
@@ -123,16 +144,33 @@
 
         if (eventInfo.status === 'finished') {
           document.getElementById('sb-status-badge').className = 'finished-badge';
-          document.getElementById('sb-status-badge').innerHTML = '⏹ ZAKOŃCZONE';
+          document.getElementById('sb-status-badge').innerHTML = `⏹ ${t('sb_finished')}`;
           document.getElementById('sb-refresh-info').style.display = 'none';
+        } else {
+          document.getElementById('sb-refresh-info').textContent = t('sb_auto_refresh');
         }
 
+        updateSbTexts();
         await fetchScores();
+
         if (eventInfo.status !== 'finished') {
           refreshTimer = setInterval(fetchScores, 15000);
         }
+
+        // Live listener for event end
+        db.collection('events').doc(eventId).onSnapshot(snap => {
+          const d = snap.data();
+          if (d.status === 'finished' && eventInfo.status !== 'finished') {
+            eventInfo.status = 'finished';
+            clearInterval(refreshTimer);
+            document.getElementById('sb-status-badge').className = 'finished-badge';
+            document.getElementById('sb-status-badge').innerHTML = `⏹ ${t('sb_finished')}`;
+            document.getElementById('sb-refresh-info').style.display = 'none';
+            fetchScores();
+          }
+        });
       } catch (e) {
-        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">Błąd ładowania</td></tr>`;
+        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">${t('sb_load_error')}</td></tr>`;
       }
     }
 
@@ -158,7 +196,7 @@
       tbody.innerHTML = '';
 
       if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px">Brak uczestników z punktami</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px">${t('sb_no_data')}</td></tr>`;
         return;
       }
 
@@ -183,10 +221,16 @@
         tbody.appendChild(tr);
       });
 
-      document.getElementById('sb-refresh-info').textContent = `Ostatnie odświeżenie: ${new Date().toLocaleTimeString()} · Auto co 15s`;
+      const now = new Date().toLocaleTimeString(currentLang === 'pl' ? 'pl-PL' : 'en-US');
+      if (eventInfo.status !== 'finished') {
+        document.getElementById('sb-refresh-info').textContent = `${t('sb_last_refresh')}: ${now} · ${t('sb_auto_refresh')}`;
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', loadScoreboardPage);
+    document.addEventListener('DOMContentLoaded', () => {
+      setLang(currentLang);
+      loadScoreboardPage();
+    });
   </script>
 </body>
 </html>

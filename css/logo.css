@@ -1,0 +1,20 @@
+/* Logo styles */
+.hero-logo-wrap {
+  flex-shrink: 0;
+  width: 120px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+}
+.hero-logo-img {
+  width: 110px;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(0,196,90,0.3));
+  animation: float 6s ease-in-out infinite;
+}
+.sidebar-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
