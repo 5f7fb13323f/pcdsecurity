@@ -636,9 +636,9 @@ function createModal(title, bodyHtml, buttons, maxWidth = '560px') {
   overlay.className = 'modal-overlay';
   overlay.id = 'current-modal';
 
-  const btnHtml = buttons.map(b => {
+  const btnHtml = buttons.map((b, i) => {
     if (b.action === 'close') return `<button class="${b.cls}" onclick="closeModal()">${b.label}</button>`;
-    return `<button class="${b.cls}" id="modal-action-${b.label.replace(/\s/g,'')}">${b.label}</button>`;
+    return `<button class="${b.cls}" data-modal-action="${i}">${b.label}</button>`;
   }).join('');
 
   overlay.innerHTML = `
@@ -654,10 +654,10 @@ function createModal(title, bodyHtml, buttons, maxWidth = '560px') {
   container.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
-  // Bind non-close actions
-  buttons.forEach(b => {
+  // Bind non-close actions using index
+  buttons.forEach((b, i) => {
     if (b.action && b.action !== 'close') {
-      const btn = overlay.querySelector(`#modal-action-${b.label.replace(/\s/g,'')}`);
+      const btn = overlay.querySelector(`[data-modal-action="${i}"]`);
       if (btn) btn.addEventListener('click', b.action);
     }
   });
