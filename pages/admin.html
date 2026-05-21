@@ -38,6 +38,9 @@
         <a class="nav-item" data-page="users" onclick="showPage('users')">
           <span class="icon">◉</span> <span data-i18n="nav_users">Użytkownicy</span>
         </a>
+        <a class="nav-item" data-page="task-templates" onclick="showPage('task-templates')">
+          <span class="icon">📋</span> <span>Szablon zadań</span>
+        </a>
         <a class="nav-item" data-page="settings" onclick="showPage('settings')">
           <span class="icon">⚙</span> <span data-i18n="nav_settings">Ustawienia</span>
         </a>
@@ -151,6 +154,24 @@
             <tbody id="users-tbody"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- TASK TEMPLATES (GLOBAL) -->
+      <div id="page-task-templates" class="page-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📋 Szablon <span>zadań</span></h1>
+            <p class="page-subtitle">Konfiguruj obrazki i pliki raz — każde nowe wydarzenie je odziedziczy automatycznie</p>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="loadGlobalTasks()">↻ Odśwież</button>
+        </div>
+        <div class="card" style="margin-bottom:16px;padding:14px 20px;background:rgba(46,204,113,0.05);border-color:rgba(46,204,113,0.2)">
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.875rem;color:var(--accent)">
+            <span>ℹ</span>
+            <span>Zmiany w szablonie globalnym <strong>nie aktualizują</strong> już istniejących wydarzeń — tylko nowo tworzonych. Aby zaktualizować istniejące wydarzenie, edytuj zadania bezpośrednio z poziomu danego wydarzenia.</span>
+          </div>
+        </div>
+        <div id="global-tasks-list" class="task-grid"></div>
       </div>
 
       <!-- SETTINGS -->
