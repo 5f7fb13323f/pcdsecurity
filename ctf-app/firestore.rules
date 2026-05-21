@@ -1,0 +1,52 @@
+// ============================================================
+// FIREBASE FIRESTORE SECURITY RULES
+// Wklej te reguły w Firebase Console:
+// Firestore Database → Rules
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // USERS collection
+    // - Odczyt: tylko zalogowany admin lub właściciel dokumentu
+    // - Zapis:  tylko aplikacja (brak auth = hasła jako hash)
+    // =========================================================
+    match /users/{userId} {
+      // Pozwól na odczyt do logowania (weryfikacja hasła hashowego)
+      allow read: if true;
+      // Pozwól na zapis tylko jeśli dokument już istnieje (update)
+      // lub tworzymy nowy (setup/admin)
+      allow write: if true;
+    }
+
+    // =========================================================
+    // EVENTS collection
+    // =========================================================
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if true;
+
+      // Tasks subcollection
+      match /tasks/{taskId} {
+        allow read: if true;
+        allow write: if true;
+      }
+
+      // Answers subcollection
+      match /answers/{answerId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    // =========================================================
+    // NOTE: Te reguły są otwarte (allow all) dla uproszczenia
+    // w środowisku warsztatowym. W produkcji należy:
+    // 1. Włączyć Firebase Auth
+    // 2. Ograniczyć reguły do uwierzytelnionych użytkowników
+    // 3. Dodać walidację ról po stronie reguł
+    // =========================================================
+  }
+}

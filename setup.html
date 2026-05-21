@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Setup — CyberBrew CTF</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+</head>
+<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:var(--font-mono)">
+  <div class="bg-grid"></div>
+  <div style="position:relative;z-index:2;max-width:560px;width:100%;padding:24px">
+    <div style="text-align:center;margin-bottom:32px">
+      <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        CyberBrew CTF
+      </h1>
+      <p style="color:var(--text3);margin-top:8px">Inicjalizacja bazy danych</p>
+    </div>
+    <div class="card">
+      <div id="setup-steps" style="display:flex;flex-direction:column;gap:12px">
+        <div id="step-1" style="display:flex;align-items:center;gap:10px;color:var(--text3)">
+          <span id="s1-icon">⏳</span> Sprawdzam połączenie z Firebase...
+        </div>
+        <div id="step-2" style="display:flex;align-items:center;gap:10px;color:var(--text3)">
+          <span id="s2-icon">⏳</span> Sprawdzam konto admina...
+        </div>
+        <div id="step-3" style="display:flex;align-items:center;gap:10px;color:var(--text3)">
+          <span id="s3-icon">⏳</span> Tworzę domyślne konto admin...
+        </div>
+      </div>
+      <div id="result" style="margin-top:24px;display:none"></div>
+      <button id="go-home" style="display:none;margin-top:16px" class="btn-primary" onclick="location.href='index.html'">
+        Przejdź do aplikacji →
+      </button>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px;font-size:0.8rem;color:var(--text3);line-height:1.7">
+      <strong style="color:var(--accent)">Domyślne dane logowania admina:</strong><br>
+      Login: <span style="color:var(--text)">admin</span><br>
+      Hasło: <span style="color:var(--accent2)">NieMaHasla2026@#$</span><br><br>
+      <span style="color:var(--warning)">⚠ Zmień hasło po pierwszym logowaniu w Ustawienia!</span>
+    </div>
+  </div>
+
+  <script>
+    async function sha256(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function setStep(id, icon, color) {
+      document.getElementById(`s${id}-icon`).textContent = icon;
+      document.getElementById(`step-${id}`).style.color = color;
+    }
+
+    async function runSetup() {
+      try {
+        // Step 1: Test Firebase connection
+        await db.collection('_test').doc('ping').set({ ts: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('_test').doc('ping').delete();
+        setStep(1, '✓', 'var(--success)');
+
+        // Step 2: Check if admin exists
+        const existing = await db.collection('users').where('login', '==', 'admin').get();
+        setStep(2, '✓', 'var(--success)');
+
+        // Step 3: Create admin if not exists
+        if (existing.empty) {
+          const hash = await sha256('NieMaHasla2026@#$');
+          await db.collection('users').add({
+            login: 'admin',
+            passwordHash: hash,
+            role: 'admin',
+            displayName: 'Administrator',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          setStep(3, '✓', 'var(--success)');
+          document.getElementById('result').innerHTML = `<div class="success-msg">✓ Konto admin zostało utworzone pomyślnie!</div>`;
+        } else {
+          setStep(3, '—', 'var(--text3)');
+          document.getElementById('result').innerHTML = `<div style="color:var(--text2);font-size:0.875rem">ℹ Konto admin już istnieje. Pominięto.</div>`;
+        }
+
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('go-home').style.display = 'block';
+      } catch (e) {
+        document.getElementById('result').innerHTML = `<div class="error-msg">✗ Błąd: ${e.message}<br><br>Sprawdź konfigurację Firebase w js/firebase-config.js</div>`;
+        document.getElementById('result').style.display = 'block';
+        setStep(1, '✗', 'var(--danger)');
+        console.error(e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', runSetup);
+  </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pl" data-lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — CyberBrew CTF</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/tasks-data.js"></script>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="scan-line"></div>
+
+  <div class="app-layout" id="app" style="display:none">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg class="sidebar-logo" viewBox="0 0 100 115" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,5 95,30 95,85 50,110 5,85 5,30" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <text x="50" y="63" text-anchor="middle" font-family="Share Tech Mono" font-size="22" fill="var(--accent)">CB</text>
+        </svg>
+        <div class="sidebar-brand">Cyber<span>Brew</span></div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">Navigation</div>
+        <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+          <span class="icon">⊞</span> <span data-i18n="nav_dashboard">Dashboard</span>
+        </a>
+        <a class="nav-item" data-page="events" onclick="showPage('events')">
+          <span class="icon">◈</span> <span data-i18n="nav_events">Wydarzenia</span>
+        </a>
+        <a class="nav-item" data-page="users" onclick="showPage('users')">
+          <span class="icon">◉</span> <span data-i18n="nav_users">Użytkownicy</span>
+        </a>
+        <a class="nav-item" data-page="settings" onclick="showPage('settings')">
+          <span class="icon">⚙</span> <span data-i18n="nav_settings">Ustawienia</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar" id="avatar-initials">A</div>
+          <div>
+            <div class="user-name" id="sidebar-username">Admin</div>
+            <div style="font-size:0.72rem;color:var(--accent)">Administrator</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-secondary btn-sm" onclick="setLang('pl')">PL</button>
+          <button class="btn-secondary btn-sm" onclick="setLang('en')">EN</button>
+          <button class="btn-secondary btn-sm" onclick="doLogout()" style="margin-left:auto" data-i18n="logout">Wyloguj</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page-section">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle" id="dash-subtitle">Przegląd platformy</p>
+          </div>
+        </div>
+        <div class="stats-grid" id="dash-stats">
+          <div class="stat-card"><div class="stat-value" id="stat-events">—</div><div class="stat-label">Wydarzeń</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-users">—</div><div class="stat-label">Użytkowników</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-active">—</div><div class="stat-label">Aktywnych</div></div>
+          <div class="stat-card"><div class="stat-value">15</div><div class="stat-label">Zadań</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="card-icon">◈</span> Ostatnie wydarzenia</div>
+            <button class="btn-secondary btn-sm" onclick="showPage('events')">Zobacz wszystkie</button>
+          </div>
+          <div id="dash-events-list"></div>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div id="page-events" class="page-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="events_title">Wydarzenia</h1>
+          </div>
+          <button class="btn-primary" onclick="openCreateEventModal()" style="width:auto;padding:10px 20px">
+            + <span data-i18n="create_event">Utwórz wydarzenie</span>
+          </button>
+        </div>
+        <div id="events-container"></div>
+      </div>
+
+      <!-- EVENT DETAIL -->
+      <div id="page-event-detail" class="page-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <button class="btn-secondary btn-sm" onclick="showPage('events')" style="margin-bottom:8px">← <span data-i18n="back">Powrót</span></button>
+            <h1 class="page-title" id="detail-event-name">Wydarzenie</h1>
+            <p class="page-subtitle" id="detail-event-meta"></p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-secondary btn-sm" onclick="openScoreboard(currentEventId)">🏆 Scoreboard</button>
+            <button class="btn-danger btn-sm" id="btn-end-event" onclick="endEvent()">⏹ <span data-i18n="end_event">Zakończ</span></button>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('tasks')">📋 Zadania (15)</button>
+          <button class="tab-btn" onclick="switchTab('participants')">👥 Uczestnicy</button>
+        </div>
+        <!-- Tasks tab -->
+        <div id="tab-tasks" class="tab-content active">
+          <div id="admin-tasks-list" class="task-grid"></div>
+        </div>
+        <!-- Participants tab -->
+        <div id="tab-participants" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Przypisani uczestnicy</div>
+              <button class="btn-secondary btn-sm" onclick="openAssignModal()">+ Przypisz uczestnika</button>
+            </div>
+            <div id="participants-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div id="page-users" class="page-section" style="display:none">
+        <div class="page-header">
+          <div><h1 class="page-title" data-i18n="users_title">Użytkownicy</h1></div>
+          <button class="btn-primary" onclick="openAddUserModal()" style="width:auto;padding:10px 20px">
+            + <span data-i18n="add_user">Dodaj użytkownika</span>
+          </button>
+        </div>
+        <div class="card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="user_login">Login</th>
+                <th data-i18n="user_role">Rola</th>
+                <th data-i18n="event">Wydarzenie</th>
+                <th data-i18n="actions">Akcje</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="page-settings" class="page-section" style="display:none">
+        <div class="page-header">
+          <div><h1 class="page-title" data-i18n="settings_title">Ustawienia</h1></div>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="card-header">
+            <div class="card-title">🔐 <span data-i18n="change_admin_pass">Zmień hasło administratora</span></div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="current_password">Aktualne hasło</label>
+            <div class="password-wrap">
+              <input type="password" id="cur-pass" autocomplete="current-password">
+              <button class="eye-btn" onclick="togglePassword('cur-pass')">👁</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="new_password">Nowe hasło</label>
+            <div class="password-wrap">
+              <input type="password" id="new-pass" autocomplete="new-password">
+              <button class="eye-btn" onclick="togglePassword('new-pass')">👁</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="confirm_password">Potwierdź nowe hasło</label>
+            <div class="password-wrap">
+              <input type="password" id="conf-pass" autocomplete="new-password">
+              <button class="eye-btn" onclick="togglePassword('conf-pass')">👁</button>
+            </div>
+          </div>
+          <div id="settings-msg"></div>
+          <button class="btn-primary" onclick="changeAdminPassword()" style="width:auto;padding:10px 24px">
+            💾 <span data-i18n="save">Zapisz</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+  <div id="modal-container"></div>
+
+  <script src="../js/admin.js"></script>
+</body>
+</html>

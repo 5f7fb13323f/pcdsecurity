@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl" data-lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberBrew CTF</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/auth.js"></script>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="scan-line"></div>
+
+  <!-- Participant login screen (if not logged in) -->
+  <div id="login-screen" style="display:none">
+    <main class="landing-main" style="max-width:480px">
+      <div class="login-panel" style="padding-top:80px">
+        <div class="login-card">
+          <div class="login-header">
+            <div class="terminal-dots"><span></span><span></span><span></span></div>
+            <span class="terminal-title">participant@cyberbrew:~$</span>
+          </div>
+          <div class="login-body">
+            <h3>CyberBrew CTF</h3>
+            <div class="form-group">
+              <label data-i18n="username">Login</label>
+              <input type="text" id="p-login" placeholder="twój login" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label data-i18n="password">Hasło</label>
+              <div class="password-wrap">
+                <input type="password" id="p-pass" placeholder="••••••••" autocomplete="current-password">
+                <button class="eye-btn" onclick="togglePassword('p-pass')">👁</button>
+              </div>
+            </div>
+            <div id="p-error" class="error-msg hidden"></div>
+            <button class="btn-primary" onclick="loginParticipant()" id="p-login-btn">
+              <span data-i18n="login_btn">Zaloguj się</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <div class="user-login-link" style="margin-top:12px">
+              <a href="../index.html" style="color:var(--text3)">← Powrót</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Lang toggle -->
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:24px;font-family:var(--font-mono);font-size:0.85rem;color:var(--text3)">
+        <button onclick="setLang('pl')" id="btn-pl" class="active" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:4px">PL</button>
+        <span>/</span>
+        <button onclick="setLang('en')" id="btn-en" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:4px">EN</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Main app (after login) -->
+  <div id="app" class="app-layout" style="display:none">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg class="sidebar-logo" viewBox="0 0 100 115" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,5 95,30 95,85 50,110 5,85 5,30" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <text x="50" y="63" text-anchor="middle" font-family="Share Tech Mono" font-size="22" fill="var(--accent)">CB</text>
+        </svg>
+        <div class="sidebar-brand">Cyber<span>Brew</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Menu</div>
+        <a class="nav-item active" onclick="showParticipantPage('tasks')">
+          <span class="icon">◈</span> <span id="nav-event-name">Moje zadania</span>
+        </a>
+        <a class="nav-item" onclick="showParticipantPage('scoreboard')">
+          <span class="icon">🏆</span> <span data-i18n="scoreboard">Tabela wyników</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar" id="p-avatar">U</div>
+          <div>
+            <div class="user-name" id="p-username">Uczestnik</div>
+            <div style="font-size:0.72rem;color:var(--text2)" data-i18n="role_participant">Uczestnik</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-secondary btn-sm" onclick="setLang('pl')">PL</button>
+          <button class="btn-secondary btn-sm" onclick="setLang('en')">EN</button>
+          <button class="btn-secondary btn-sm" onclick="doLogoutParticipant()" style="margin-left:auto" data-i18n="logout">Wyloguj</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+      <!-- TASKS PAGE -->
+      <div id="p-page-tasks">
+        <div id="event-banner" class="event-banner" style="display:none">
+          <div class="event-banner-icon">🍺</div>
+          <div style="flex:1">
+            <div class="event-banner-title" id="ev-banner-name">–</div>
+            <div class="event-banner-meta" id="ev-banner-meta">–</div>
+            <div class="progress-bar" style="max-width:300px;margin-top:8px">
+              <div class="progress-fill" id="ev-progress" style="width:0%"></div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--accent2)" id="total-score">0</div>
+            <div style="font-size:0.75rem;color:var(--text3)" data-i18n="points">Punkty</div>
+          </div>
+        </div>
+
+        <div id="review-banner" class="review-banner" style="display:none">
+          <span>✓</span> <span data-i18n="event_ended">Wydarzenie zakończone — tryb przeglądu</span>
+        </div>
+
+        <div id="no-event-msg" class="empty-state" style="display:none">
+          <div class="icon">◈</div>
+          <p data-i18n="no_event">Nie przypisano do żadnego wydarzenia</p>
+        </div>
+
+        <div id="tasks-container" class="task-grid"></div>
+      </div>
+
+      <!-- SCOREBOARD PAGE -->
+      <div id="p-page-scoreboard" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">🏆 <span data-i18n="scoreboard">Tabela wyników</span></h1>
+            <p class="page-subtitle"><span class="badge badge-green" id="live-badge">LIVE</span></p>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="loadScoreboard()">↻ Odśwież</button>
+        </div>
+        <div class="card">
+          <table class="scoreboard-table">
+            <thead>
+              <tr>
+                <th class="rank-col" data-i18n="rank">Miejsce</th>
+                <th data-i18n="participant">Uczestnik</th>
+                <th data-i18n="score">Wynik</th>
+                <th data-i18n="solved_count">Rozwiązanych</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/participant.js"></script>
+</body>
+</html>

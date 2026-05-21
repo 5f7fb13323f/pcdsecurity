@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pl" data-lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoreboard — CyberBrew CTF</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/auth.js"></script>
+  <style>
+    body { position: relative; }
+    .scoreboard-page {
+      max-width: 900px; margin: 0 auto; padding: 40px 24px;
+      position: relative; z-index: 2;
+    }
+    .sb-header {
+      text-align: center; margin-bottom: 40px;
+    }
+    .sb-title {
+      font-family: var(--font-display); font-size: 2.5rem; font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sb-event-name {
+      font-family: var(--font-mono); color: var(--accent2); font-size: 1rem;
+      margin-top: 8px;
+    }
+    .live-indicator {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+      border-radius: 20px; padding: 4px 14px; font-size: 0.75rem;
+      color: var(--accent2); font-family: var(--font-mono); margin-top: 12px;
+    }
+    .live-dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; animation: pulse-dot 1.5s infinite; }
+    .finished-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(122,146,169,0.1); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 14px; font-size: 0.75rem;
+      color: var(--text3); font-family: var(--font-mono); margin-top: 12px;
+    }
+    .sb-table { width: 100%; border-collapse: collapse; }
+    .sb-table th {
+      text-align: left; padding: 12px 20px;
+      font-size: 0.72rem; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      border-bottom: 2px solid var(--border2);
+    }
+    .sb-table td {
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+    }
+    .sb-table tbody tr { transition: background 0.2s; }
+    .sb-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+    .rank-medal { font-size: 1.4rem; }
+    .player-name { font-size: 1.1rem; font-weight: 600; }
+    .player-score { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--accent2); }
+    .solved-bar-wrap { margin-top: 4px; }
+    .sb-refresh {
+      text-align: center; margin-top: 20px;
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3);
+    }
+    .top-row td { border-bottom: 2px solid var(--border2); }
+    .rank-1 .player-name { color: var(--accent4); }
+    .rank-2 .player-name { color: #c0c0c0; }
+    .rank-3 .player-name { color: #cd7f32; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="scan-line"></div>
+
+  <div class="scoreboard-page">
+    <div class="sb-header">
+      <div class="sb-title">🏆 Scoreboard</div>
+      <div class="sb-event-name" id="sb-event-name">Loading...</div>
+      <div id="sb-status-badge" class="live-indicator"><div class="live-dot"></div> LIVE</div>
+    </div>
+
+    <div class="card">
+      <table class="sb-table">
+        <thead>
+          <tr>
+            <th style="width:60px">Miejsce</th>
+            <th>Uczestnik</th>
+            <th>Wynik</th>
+            <th>Rozwiązanych</th>
+          </tr>
+        </thead>
+        <tbody id="sb-tbody">
+          <tr><td colspan="4"><div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sb-refresh" id="sb-refresh-info">Auto-odświeżanie co 15 sekund</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const eventId = params.get('event');
+    let eventInfo = null;
+    let refreshTimer = null;
+
+    async function loadScoreboardPage() {
+      if (!eventId) {
+        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">Brak ID wydarzenia</td></tr>`;
+        return;
+      }
+
+      try {
+        const evDoc = await db.collection('events').doc(eventId).get();
+        if (!evDoc.exists) throw new Error('not found');
+        eventInfo = evDoc.data();
+
+        document.getElementById('sb-event-name').textContent = eventInfo.name;
+        document.title = `${eventInfo.name} — Scoreboard`;
+
+        if (eventInfo.status === 'finished') {
+          document.getElementById('sb-status-badge').className = 'finished-badge';
+          document.getElementById('sb-status-badge').innerHTML = '⏹ ZAKOŃCZONE';
+          document.getElementById('sb-refresh-info').style.display = 'none';
+        }
+
+        await fetchScores();
+        if (eventInfo.status !== 'finished') {
+          refreshTimer = setInterval(fetchScores, 15000);
+        }
+      } catch (e) {
+        document.getElementById('sb-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger)">Błąd ładowania</td></tr>`;
+      }
+    }
+
+    async function fetchScores() {
+      const snap = await db.collection('events').doc(eventId).collection('answers').get();
+      const byUser = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (!byUser[d.userId]) byUser[d.userId] = { login: d.userLogin, total: 0, solved: 0, lastSolve: null };
+        if (d.correct) {
+          byUser[d.userId].total += (d.points || 0);
+          byUser[d.userId].solved++;
+          const ts = d.solvedAt?.toDate ? d.solvedAt.toDate() : null;
+          if (ts && (!byUser[d.userId].lastSolve || ts > byUser[d.userId].lastSolve)) {
+            byUser[d.userId].lastSolve = ts;
+          }
+        }
+      });
+
+      const sorted = Object.values(byUser).sort((a, b) => b.total - a.total || (a.lastSolve?.getTime() || 0) - (b.lastSolve?.getTime() || 0));
+      const maxScore = sorted[0]?.total || 1;
+      const tbody = document.getElementById('sb-tbody');
+      tbody.innerHTML = '';
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px">Brak uczestników z punktami</td></tr>`;
+        return;
+      }
+
+      sorted.forEach((data, i) => {
+        const rank = i + 1;
+        const medals = ['🥇','🥈','🥉'];
+        const medalOrNum = rank <= 3 ? medals[rank-1] : rank;
+        const pct = Math.round((data.total / maxScore) * 100);
+        const lastStr = data.lastSolve ? data.lastSolve.toLocaleTimeString() : '—';
+        const tr = document.createElement('tr');
+        tr.className = `rank-${rank}${rank <= 3 ? ' top-row' : ''}`;
+        tr.innerHTML = `
+          <td><span class="rank-medal">${medalOrNum}</span></td>
+          <td><div class="player-name">${data.login}</div></td>
+          <td>
+            <div class="player-score">${data.total} pts</div>
+            <div class="solved-bar-wrap">
+              <div class="score-bar" style="max-width:200px"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+            </div>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:0.9rem;color:var(--text2)">${data.solved} / 15<br><span style="font-size:0.75rem;color:var(--text3)">${lastStr}</span></td>`;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('sb-refresh-info').textContent = `Ostatnie odświeżenie: ${new Date().toLocaleTimeString()} · Auto co 15s`;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadScoreboardPage);
+  </script>
+</body>
+</html>
