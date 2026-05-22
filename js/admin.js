@@ -157,7 +157,7 @@ async function createEvent() {
 
   try {
     const evRef = await db.collection('events').add({
-      name, description: desc, date, status: 'active',
+      name, description: desc, date, status: 'pending',
       createdAt: new Date().toISOString()
     });
 
@@ -219,12 +219,10 @@ async function openEventDetail(eventId) {
   document.getElementById('detail-event-meta').textContent =
     `${currentEventData.date || ''} · ${currentEventData.status === 'active' ? t('event_active') : t('event_finished')}`;
 
-  const endBtn = document.getElementById('btn-end-event');
-  if (currentEventData.status === 'finished') {
-    endBtn.style.display = 'none';
-  } else {
-    endBtn.style.display = '';
-  }
+  const s = currentEventData.status || 'pending';
+  document.getElementById('btn-start-event').style.display = (s === 'pending') ? '' : 'none';
+  document.getElementById('btn-end-event').style.display = (s === 'active') ? '' : 'none';
+  updateEventDetailMeta();
 
   // Activate event-detail nav item
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -296,41 +294,83 @@ function openEditTask(taskId) {
   const task = currentTasksData[String(taskId)];
   if (!task) return;
 
-  const modal = createModal(`Edytuj zadanie ${taskId}: ${task.name}`, `
-    <div class="form-group">
-      <label>${t('task_points')}</label>
-      <input type="number" id="edit-points" value="${task.points}" min="0" step="10">
+  const inp = (id, val, ph='') => `<input type="text" id="${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem;margin-bottom:6px">`;
+  const ta = (id, val, ph='') => `<textarea id="${id}" placeholder="${ph}" rows="3" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem;resize:vertical;margin-bottom:6px">${(val||'').replace(/</g,'&lt;')}</textarea>`;
+
+  createModal(`Edytuj zadanie ${taskId}: ${task.name}`, `
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="switchEditTab('content',this)">📝 Treść</button>
+      <button class="tab-btn" onclick="switchEditTab('media',this)">🖼 Media</button>
     </div>
-    <div class="form-group">
-      <label>${t('task_images')} (URL)</label>
-      <div id="images-list">
-        ${(task.images || []).map((img, i) => `
-          <div style="display:flex;gap:8px;margin-bottom:6px" id="img-row-${i}">
-            <input type="text" value="${img.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL obrazka...">
-            <button class="btn-danger btn-sm" onclick="document.getElementById('img-row-${i}').remove()">✕</button>
-          </div>`).join('')}
+
+    <!-- CONTENT TAB -->
+    <div id="edit-tab-content">
+      <div class="form-group">
+        <label>Kontekst (PL)</label>${ta('edit-context', task.context, 'Treść kontekstu po polsku...')}
+        <label>Context (EN)</label>${ta('edit-context-en', task.contextEn, 'Context text in English...')}
       </div>
-      <button class="btn-secondary btn-sm" onclick="addImageRow()" style="margin-top:6px">+ Dodaj obrazek</button>
-    </div>
-    <div class="form-group">
-      <label>${t('task_files')} (URL)</label>
-      <div id="files-list">
-        ${(task.files || []).map((f, i) => `
-          <div style="display:flex;gap:8px;margin-bottom:6px" id="file-row-${i}">
-            <input type="text" value="${f.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL pliku...">
-            <input type="text" value="${f.name}" style="width:140px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="Nazwa pliku">
-            <button class="btn-danger btn-sm" onclick="document.getElementById('file-row-${i}').remove()">✕</button>
-          </div>`).join('')}
+      <div class="form-group">
+        <label>Pytanie (PL)</label>${ta('edit-question', task.question, 'Treść pytania po polsku...')}
+        <label>Question (EN)</label>${ta('edit-question-en', task.questionEn, 'Question text in English...')}
       </div>
-      <button class="btn-secondary btn-sm" onclick="addFileRow()" style="margin-top:6px">+ Dodaj plik</button>
+      <div class="form-group">
+        <label>Narracja / Intro (PL)</label>${ta('edit-narrative', task.narrative, 'Opcjonalna narracja...')}
+        <label>Narrative (EN)</label>${ta('edit-narrative-en', task.narrativeEn, 'Optional narrative...')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Odpowiedź (flaga)</label>${inp('edit-answer', task.answer, 'FLAG{...}')}
+        </div>
+        <div class="form-group">
+          <label>Format (podpowiedź)</label>${inp('edit-format', task.format, 'FLAG{Słowo}')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>${t('task_points')}</label>
+        <input type="number" id="edit-points" value="${task.points}" min="0" step="10" style="width:120px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem">
+      </div>
     </div>
-    <p style="font-size:0.75rem;color:var(--text3);margin-top:8px">
-      💡 Tip: Wgraj pliki na Google Drive / Dropbox i wklej publiczny link URL. Lub użyj Firebase Storage.
-    </p>
+
+    <!-- MEDIA TAB -->
+    <div id="edit-tab-media" style="display:none">
+      <div class="form-group">
+        <label>${t('task_images')} (URL)</label>
+        <div id="images-list">
+          ${(task.images || []).map((img, i) => `
+            <div style="display:flex;gap:8px;margin-bottom:6px" id="img-row-${i}">
+              <input type="text" value="${img.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL obrazka...">
+              <button class="btn-danger btn-sm" onclick="document.getElementById('img-row-${i}').remove()">✕</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn-secondary btn-sm" onclick="addImageRow()" style="margin-top:6px">+ Dodaj obrazek</button>
+      </div>
+      <div class="form-group">
+        <label>${t('task_files')} (URL)</label>
+        <div id="files-list">
+          ${(task.files || []).map((f, i) => `
+            <div style="display:flex;gap:8px;margin-bottom:6px" id="file-row-${i}">
+              <input type="text" value="${f.url}" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="URL pliku...">
+              <input type="text" value="${f.name}" style="width:140px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-size:0.8rem" placeholder="Nazwa pliku">
+              <button class="btn-danger btn-sm" onclick="document.getElementById('file-row-${i}').remove()">✕</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn-secondary btn-sm" onclick="addFileRow()" style="margin-top:6px">+ Dodaj plik</button>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text3);margin-top:4px">
+        💡 Wgraj pliki na Google Drive/Dropbox i wklej publiczny URL.
+      </p>
+    </div>
   `, [
     { label: t('cancel'), cls: 'btn-secondary', action: 'close' },
     { label: '💾 Zapisz', cls: 'btn-primary', action: () => saveTaskEdit(taskId) }
-  ], '640px');
+  ], '680px');
+}
+
+function switchEditTab(tab, btn) {
+  document.getElementById('edit-tab-content').style.display = tab === 'content' ? 'block' : 'none';
+  document.getElementById('edit-tab-media').style.display = tab === 'media' ? 'block' : 'none';
+  document.querySelectorAll('#current-modal .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
 }
 
 function addImageRow() {
@@ -360,6 +400,18 @@ function addFileRow() {
 
 async function saveTaskEdit(taskId) {
   const points = parseInt(document.getElementById('edit-points').value) || 0;
+  const g = id => document.getElementById(id)?.value || '';
+
+  const textFields = {
+    context:      g('edit-context'),
+    contextEn:    g('edit-context-en'),
+    question:     g('edit-question'),
+    questionEn:   g('edit-question-en'),
+    narrative:    g('edit-narrative'),
+    narrativeEn:  g('edit-narrative-en'),
+    answer:       g('edit-answer').trim(),
+    format:       g('edit-format').trim(),
+  };
 
   // Collect images
   const images = [];
@@ -377,27 +429,40 @@ async function saveTaskEdit(taskId) {
     if (url) files.push({ url, name });
   });
 
+  const updateData = { points, images, files, ...textFields };
+
   try {
-    // Update in current event
-    await db.collection('events').doc(currentEventId).collection('tasks').doc(String(taskId)).update({ points, images, files });
-    // Also update global template so future events inherit these settings
-    await db.collection('taskTemplates').doc(String(taskId)).update({ points, images, files });
-    currentTasksData[String(taskId)] = { ...currentTasksData[String(taskId)], points, images, files };
+    await db.collection('events').doc(currentEventId).collection('tasks').doc(String(taskId)).update(updateData);
+    // Also update global template
+    try {
+      await db.collection('taskTemplates').doc(String(taskId)).update(updateData);
+    } catch {
+      const taskData = currentTasksData[String(taskId)];
+      await db.collection('taskTemplates').doc(String(taskId)).set({ ...taskData, ...updateData });
+    }
+    currentTasksData[String(taskId)] = { ...currentTasksData[String(taskId)], ...updateData };
     closeModal();
-    showToast('Zadanie zaktualizowane! Szablon globalny też zapisany.', 'success');
+    showToast('Zadanie zaktualizowane!', 'success');
     loadAdminTasks(currentEventId);
   } catch (e) {
-    // If taskTemplate doesn't exist yet, create it
-    try {
-      const taskData = currentTasksData[String(taskId)];
-      await db.collection('taskTemplates').doc(String(taskId)).set({ ...taskData, points, images, files });
-      closeModal();
-      showToast('Zadanie zaktualizowane!', 'success');
-      loadAdminTasks(currentEventId);
-    } catch (e2) {
-      showToast(t('err_generic'), 'error');
-    }
+    console.error(e);
+    showToast(t('err_generic'), 'error');
   }
+}
+
+async function startEvent() {
+  showConfirm('Uruchomić warsztat? Uczestnicy zobaczą zadania i zacznie się odliczanie czasu dla bonusów punktowych.', async () => {
+    try {
+      const startedAt = new Date().toISOString();
+      await db.collection('events').doc(currentEventId).update({ status: 'active', startedAt });
+      currentEventData.status = 'active';
+      currentEventData.startedAt = startedAt;
+      document.getElementById('btn-start-event').style.display = 'none';
+      document.getElementById('btn-end-event').style.display = '';
+      updateEventDetailMeta();
+      showToast('🚀 Warsztat uruchomiony! Uczestnicy widzą zadania.', 'success');
+    } catch (e) { showToast(t('err_generic'), 'error'); }
+  });
 }
 
 async function endEvent() {
@@ -405,12 +470,19 @@ async function endEvent() {
     try {
       await db.collection('events').doc(currentEventId).update({ status: 'finished' });
       currentEventData.status = 'finished';
-      document.getElementById('detail-event-meta').textContent =
-        `${currentEventData.date || ''} · ${t('event_finished')}`;
       document.getElementById('btn-end-event').style.display = 'none';
+      document.getElementById('btn-start-event').style.display = 'none';
+      updateEventDetailMeta();
       showToast('Wydarzenie zakończone', 'success');
     } catch (e) { showToast(t('err_generic'), 'error'); }
   });
+}
+
+function updateEventDetailMeta() {
+  const statusMap = { pending: '⏳ Oczekuje na start', active: '▶ Aktywne', finished: '⏹ Zakończone' };
+  const s = currentEventData.status || 'pending';
+  document.getElementById('detail-event-meta').textContent =
+    `${currentEventData.date || ''} · ${statusMap[s] || s}`;
 }
 
 // ============================================================
@@ -490,14 +562,44 @@ function openEditGlobalTask(taskId) {
   const task = (window._globalTasksMap || {})[String(taskId)];
   if (!task) return;
 
+  const inp = (id, val, ph='') => `<input type="text" id="${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem;margin-bottom:6px">`;
+  const ta = (id, val, ph='') => `<textarea id="${id}" placeholder="${ph}" rows="3" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem;resize:vertical;margin-bottom:6px">${(val||'').replace(/</g,'&lt;')}</textarea>`;
+
   createModal(`Edytuj szablon globalny — Zadanie ${taskId}`, `
-    <div style="background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.8rem;color:var(--accent)">
+    <div style="background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.8rem;color:var(--accent)">
       ℹ Zmiany będą stosowane do wszystkich nowych wydarzeń
     </div>
-    <div class="form-group">
-      <label>${t('task_points')}</label>
-      <input type="number" id="gedit-points" value="${task.points}" min="0" step="10">
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="switchGEditTab('content',this)">📝 Treść</button>
+      <button class="tab-btn" onclick="switchGEditTab('media',this)">🖼 Media</button>
     </div>
+    <div id="gedit-tab-content">
+      <div class="form-group">
+        <label>Kontekst (PL)</label>${ta('gedit-context', task.context, 'Treść kontekstu...')}
+        <label>Context (EN)</label>${ta('gedit-context-en', task.contextEn, 'Context in English...')}
+      </div>
+      <div class="form-group">
+        <label>Pytanie (PL)</label>${ta('gedit-question', task.question, 'Treść pytania...')}
+        <label>Question (EN)</label>${ta('gedit-question-en', task.questionEn, 'Question in English...')}
+      </div>
+      <div class="form-group">
+        <label>Narracja (PL)</label>${ta('gedit-narrative', task.narrative, 'Opcjonalna narracja...')}
+        <label>Narrative (EN)</label>${ta('gedit-narrative-en', task.narrativeEn, 'Optional narrative...')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Odpowiedź (flaga)</label>${inp('gedit-answer', task.answer, 'FLAG{...}')}
+        </div>
+        <div class="form-group">
+          <label>Format</label>${inp('gedit-format', task.format, 'FLAG{Słowo}')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>${t('task_points')}</label>
+        <input type="number" id="gedit-points" value="${task.points}" min="0" step="10" style="width:120px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:0.85rem">
+      </div>
+    </div>
+    <div id="gedit-tab-media" style="display:none">
     <div class="form-group">
       <label>${t('task_images')} (URL)</label>
       <div id="gimages-list">
@@ -547,8 +649,28 @@ function addGFileRow() {
   list.appendChild(row);
 }
 
+function switchGEditTab(tab, btn) {
+  document.getElementById('gedit-tab-content').style.display = tab === 'content' ? 'block' : 'none';
+  document.getElementById('gedit-tab-media').style.display = tab === 'media' ? 'block' : 'none';
+  document.querySelectorAll('#current-modal .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
 async function saveGlobalTask(taskId) {
   const points = parseInt(document.getElementById('gedit-points').value) || 0;
+  const g = id => document.getElementById(id)?.value || '';
+
+  const textFields = {
+    context:     g('gedit-context'),
+    contextEn:   g('gedit-context-en'),
+    question:    g('gedit-question'),
+    questionEn:  g('gedit-question-en'),
+    narrative:   g('gedit-narrative'),
+    narrativeEn: g('gedit-narrative-en'),
+    answer:      g('gedit-answer').trim(),
+    format:      g('gedit-format').trim(),
+  };
+
   const images = [];
   document.querySelectorAll('#gimages-list [id^="gimg-row-"]').forEach(row => {
     const url = row.querySelector('input').value.trim();
@@ -562,11 +684,12 @@ async function saveGlobalTask(taskId) {
     if (url) files.push({ url, name });
   });
 
+  const updateData = { points, images, files, ...textFields };
   try {
-    await db.collection('taskTemplates').doc(String(taskId)).update({ points, images, files });
-    if (window._globalTasksMap) window._globalTasksMap[String(taskId)] = { ...window._globalTasksMap[String(taskId)], points, images, files };
+    await db.collection('taskTemplates').doc(String(taskId)).update(updateData);
+    if (window._globalTasksMap) window._globalTasksMap[String(taskId)] = { ...window._globalTasksMap[String(taskId)], ...updateData };
     closeModal();
-    showToast('Szablon globalny zapisany! Nowe wydarzenia odziedziczą te ustawienia.', 'success');
+    showToast('Szablon globalny zapisany!', 'success');
     loadGlobalTasks();
   } catch(e) {
     showToast(t('err_generic'), 'error');

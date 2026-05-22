@@ -5,13 +5,47 @@
 let session = null;
 let eventData = null;
 let tasksData = [];
-let userAnswers = {}; // taskId -> { correct, answer, points, solvedAt }
-let scoreListener = null;
+let userAnswers = {};
+let eventListener = null;
+
+// Time bonus thresholds (seconds from event start)
+const TIME_BONUS = [
+  { maxSecs: 300,  bonus: 0.50 },  // < 5 min  → +50% 🔥
+  { maxSecs: 900,  bonus: 0.40 },  // < 15 min → +40% ⚡
+  { maxSecs: 1800, bonus: 0.30 },  // < 30 min → +30% ⚡
+  { maxSecs: 2700, bonus: 0.20 },  // < 45 min → +20% ✓
+  { maxSecs: 3600, bonus: 0.15 },  // < 60 min → +15% ✓
+  { maxSecs: 5400, bonus: 0.10 },  // < 90 min → +10%
+  { maxSecs: 7200, bonus: 0.05 },  // < 2h    → +5%
+  { maxSecs: Infinity, bonus: 0 }, // after   → +0%
+];
+
+function calcBonus(basePoints, startedAt) {
+  if (!startedAt) return 0;
+  const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+  for (const tier of TIME_BONUS) {
+    if (elapsed <= tier.maxSecs) {
+      return Math.round(basePoints * tier.bonus);
+    }
+  }
+  return 0;
+}
+
+function getBonusLabel(startedAt) {
+  if (!startedAt) return '';
+  const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+  if (elapsed <= 300)  return '+50% 🔥';
+  if (elapsed <= 900)  return '+40% ⚡';
+  if (elapsed <= 1800) return '+30% ⚡';
+  if (elapsed <= 2700) return '+20% ✓';
+  if (elapsed <= 3600) return '+15% ✓';
+  if (elapsed <= 5400) return '+10%';
+  if (elapsed <= 7200) return '+5%';
+  return '+0%';
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   setLang(currentLang);
-
-  // Check existing session
   session = getSession();
   if (session) {
     if (session.role === 'admin') { window.location.href = 'admin.html'; return; }
@@ -29,20 +63,13 @@ async function loginParticipant() {
   const pass = document.getElementById('p-pass').value;
   const errEl = document.getElementById('p-error');
   const btn = document.getElementById('p-login-btn');
-
   errEl.classList.add('hidden');
   if (!login || !pass) { errEl.textContent = t('err_required'); errEl.classList.remove('hidden'); return; }
-
   btn.disabled = true;
   btn.querySelector('span').textContent = t('loading');
-
   try {
     const user = await loginWithCredentials(login, pass);
-    if (user.role === 'admin') {
-      setSession(user);
-      window.location.href = 'admin.html';
-      return;
-    }
+    if (user.role === 'admin') { setSession(user); window.location.href = 'admin.html'; return; }
     setSession(user);
     session = user;
     document.getElementById('login-screen').style.display = 'none';
@@ -56,7 +83,7 @@ async function loginParticipant() {
 }
 
 function doLogoutParticipant() {
-  if (scoreListener) scoreListener();
+  if (eventListener) eventListener();
   clearSession();
   window.location.href = '../index.html';
 }
@@ -66,7 +93,6 @@ async function initParticipantApp() {
   document.getElementById('p-username').textContent = session.login;
   document.getElementById('p-avatar').textContent = session.login[0].toUpperCase();
 
-  // Load user's event
   const userDoc = await db.collection('users').doc(session.id).get();
   const userData = userDoc.data();
 
@@ -76,55 +102,92 @@ async function initParticipantApp() {
   }
 
   const evDoc = await db.collection('events').doc(userData.eventId).get();
-  if (!evDoc.exists) {
-    document.getElementById('no-event-msg').style.display = 'flex';
-    return;
-  }
+  if (!evDoc.exists) { document.getElementById('no-event-msg').style.display = 'flex'; return; }
 
   eventData = { id: evDoc.id, ...evDoc.data() };
 
-  document.getElementById('ev-banner-name').textContent = eventData.name;
-  document.getElementById('ev-banner-meta').textContent = eventData.date || '';
-  document.getElementById('event-banner').style.display = 'flex';
-  document.getElementById('nav-event-name').textContent = currentLang === 'en' ? 'My Tasks' : 'Moje zadania';
-
-  if (eventData.status === 'finished') {
-    document.getElementById('review-banner').style.display = 'flex';
-  }
-
-  // Load tasks and answers
-  await loadTasksAndAnswers();
-
-  // Live listener for event status changes
-  db.collection('events').doc(eventData.id).onSnapshot(snap => {
+  // Live listener — reacts to status changes (pending→active→finished)
+  eventListener = db.collection('events').doc(eventData.id).onSnapshot(snap => {
     const newData = snap.data();
-    if (newData.status === 'finished' && eventData.status !== 'finished') {
-      eventData.status = 'finished';
+    const oldStatus = eventData.status;
+    eventData = { id: snap.id, ...newData };
+
+    if (oldStatus === 'pending' && newData.status === 'active') {
+      // Workshop just started!
+      showToast('🚀 Warsztat rozpoczęty! Powodzenia!', 'success');
+      renderMainView();
+    } else if (newData.status === 'finished' && oldStatus !== 'finished') {
       document.getElementById('review-banner').style.display = 'flex';
       renderTasks();
       showToast('Wydarzenie zostało zakończone przez administratora', 'info');
     }
   });
 
+  renderMainView();
   showParticipantPage('tasks');
+}
+
+function renderMainView() {
+  const status = eventData.status || 'pending';
+
+  // Hide all state views first
+  document.getElementById('waiting-screen').style.display = 'none';
+  document.getElementById('tasks-view').style.display = 'none';
+  document.getElementById('no-event-msg').style.display = 'none';
+
+  if (status === 'pending') {
+    renderWaitingScreen();
+  } else {
+    renderActiveView();
+  }
+}
+
+function renderWaitingScreen() {
+  document.getElementById('waiting-screen').style.display = 'flex';
+  document.getElementById('waiting-event-name').textContent = eventData.name;
+}
+
+async function renderActiveView() {
+  document.getElementById('tasks-view').style.display = 'block';
+  document.getElementById('event-banner').style.display = 'flex';
+  document.getElementById('ev-banner-name').textContent = eventData.name;
+  document.getElementById('ev-banner-meta').textContent = eventData.date || '';
+
+  if (eventData.status === 'finished') {
+    document.getElementById('review-banner').style.display = 'flex';
+  }
+
+  // Show bonus indicator
+  if (eventData.startedAt && eventData.status === 'active') {
+    updateBonusIndicator();
+    setInterval(updateBonusIndicator, 10000); // update every 10s
+  }
+
+  await loadTasksAndAnswers();
+}
+
+function updateBonusIndicator() {
+  const el = document.getElementById('bonus-indicator');
+  if (!el || !eventData.startedAt) return;
+  const label = getBonusLabel(eventData.startedAt);
+  const elapsed = (Date.now() - new Date(eventData.startedAt).getTime()) / 1000;
+  const mins = Math.floor(elapsed / 60);
+  const secs = Math.floor(elapsed % 60);
+  el.innerHTML = `
+    <span style="color:var(--accent4);font-weight:700">${label}</span>
+    <span style="color:var(--text3);font-size:0.75rem;margin-left:6px">bonus za czas</span>
+    <span style="color:var(--text3);font-family:var(--font-mono);font-size:0.75rem;margin-left:8px">${mins}m ${secs}s</span>`;
 }
 
 async function loadTasksAndAnswers() {
   const [tasksSnap, answersSnap] = await Promise.all([
     db.collection('events').doc(eventData.id).collection('tasks').orderBy('id').get(),
-    db.collection('events').doc(eventData.id).collection('answers')
-      .where('userId', '==', session.id).get()
+    db.collection('events').doc(eventData.id).collection('answers').where('userId', '==', session.id).get()
   ]);
-
   tasksData = [];
   tasksSnap.forEach(doc => tasksData.push({ ...doc.data() }));
-
   userAnswers = {};
-  answersSnap.forEach(doc => {
-    const d = doc.data();
-    userAnswers[d.taskId] = d;
-  });
-
+  answersSnap.forEach(doc => { const d = doc.data(); userAnswers[d.taskId] = d; });
   renderTasks();
   updateScore();
 }
@@ -134,7 +197,6 @@ function renderTasks() {
   container.innerHTML = '';
   const isEN = currentLang === 'en';
   const isReview = eventData.status === 'finished';
-
   tasksData.forEach(task => {
     const ans = userAnswers[task.id];
     const isSolved = ans?.correct === true;
@@ -152,25 +214,35 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
   const question = isEN ? (task.questionEn || task.question) : task.question;
   const stageLabel = isEN ? (task.stageNameEn || task.stageName) : task.stageName;
   const taskName = isEN ? (task.nameEn || task.name) : task.name;
+  const statusIcon = isSolved ? '✓' : (ans && !ans.correct ? '✗' : '');
+  const statusClass = isSolved ? 'solved-num' : '';
 
-  let statusIcon = isSolved ? '✓' : (ans && !ans.correct ? '✗' : '');
-  let statusClass = isSolved ? 'solved-num' : '';
+  // Bonus info for solved tasks
+  let bonusInfo = '';
+  if (isSolved && ans.bonusPoints > 0) {
+    bonusInfo = `<span style="color:var(--accent4);font-size:0.8rem;margin-left:8px">+${ans.bonusPoints} bonus</span>`;
+  }
 
-  // Input area or review
+  // Input area
   let inputArea = '';
   if (!isReview) {
     if (isSolved) {
-      inputArea = `<div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      const totalEarned = (ans.points || 0) + (ans.bonusPoints || 0);
+      inputArea = `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
         <span class="flag-input correct" style="padding:10px 14px;font-size:0.9rem">${ans.answer}</span>
         <span style="color:var(--success);font-size:0.9rem">✓ ${t('correct')}</span>
+        <span style="color:var(--accent4);font-family:var(--font-mono);font-size:0.85rem">+${totalEarned} pts${ans.bonusPoints > 0 ? ` (${task.points} + ${ans.bonusPoints} bonus)` : ''}</span>
       </div>`;
     } else {
       const prevWrong = ans && !ans.correct;
+      // Show current bonus available
+      const bonusAvail = eventData.startedAt ? calcBonus(task.points, eventData.startedAt) : 0;
+      const bonusHint = bonusAvail > 0 ? `<span style="color:var(--accent4);font-size:0.78rem">⚡ Odpowiedz teraz: +${bonusAvail} pkt bonusu!</span>` : '';
       inputArea = `
-        <div class="flag-input-wrap" style="margin-top:10px">
+        ${bonusHint}
+        <div class="flag-input-wrap" style="margin-top:8px">
           <input class="flag-input${prevWrong ? ' wrong' : ''}" id="flag-${task.id}"
-            placeholder="${t('flag_placeholder')}" value="${prevWrong ? (ans.answer || '') : ''}"
-            ${isSolved ? 'disabled' : ''}>
+            placeholder="${t('flag_placeholder')}" value="${prevWrong ? (ans.answer || '') : ''}">
           <button class="btn-primary" style="width:auto;padding:10px 18px" onclick="submitFlag(${task.id})">
             ${t('submit')}
           </button>
@@ -183,8 +255,11 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
     // Review mode
     const wasCorrect = ans?.correct;
     const userAns = ans?.answer || t('no_answer');
+    const totalEarned = wasCorrect ? ((ans.points || 0) + (ans.bonusPoints || 0)) : 0;
     const reviewClass = wasCorrect === true ? 'correct' : (wasCorrect === false ? 'wrong' : '');
-    const reviewLabel = wasCorrect === true ? t('review_correct') : (wasCorrect === false ? t('review_wrong') : t('no_answer'));
+    const reviewLabel = wasCorrect === true
+      ? `${t('review_correct')} <span style="color:var(--accent4)">+${totalEarned} pts${ans.bonusPoints > 0 ? ` (${ans.points} + ${ans.bonusPoints} bonus)` : ''}</span>`
+      : (wasCorrect === false ? t('review_wrong') : t('no_answer'));
     inputArea = `
       <div style="margin-top:10px">
         <div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">${t('your_answer')}</div>
@@ -201,11 +276,11 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
         <div class="task-name">${taskName}</div>
         <div class="task-stage">${task.stage} · ${stageLabel}</div>
       </div>
-      <span class="task-points">${task.points} pts</span>
+      <span class="task-points">${task.points} pts${bonusInfo}</span>
       <span class="task-chevron" id="pchev-${task.id}">▼</span>
     </div>
     <div class="task-body" id="ptask-body-${task.id}" style="display:none">
-      ${narrative ? `<div style="background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);border-radius:6px;padding:14px;margin-bottom:16px;font-size:0.875rem;color:var(--text2);line-height:1.7">📡 ${narrative}</div>` : ''}
+      ${narrative ? `<div style="background:rgba(46,204,113,0.04);border:1px solid rgba(46,204,113,0.1);border-radius:6px;padding:14px;margin-bottom:16px;font-size:0.875rem;color:var(--text2);line-height:1.7">📡 ${narrative}</div>` : ''}
       ${context ? `<div class="task-context">${context.replace(/\n/g,'<br>')}</div>` : ''}
       <div class="task-question">${question}</div>
       <div class="task-format">${task.format}</div>
@@ -235,61 +310,58 @@ async function submitFlag(taskId) {
   const input = document.getElementById(`flag-${taskId}`);
   const resultEl = document.getElementById(`flag-result-${taskId}`);
   const submitted = input.value.trim();
-
   if (!submitted) { showToast(t('err_required'), 'error'); return; }
-
   const task = tasksData.find(t => t.id === taskId);
   if (!task) return;
-
-  // Already solved check
   if (userAnswers[taskId]?.correct) { showToast(t('already_solved'), 'info'); return; }
 
-  // Normalize comparison: case-insensitive, trim
-  const correct = task.answer.trim().toUpperCase() === submitted.toUpperCase();
+  // Normalize: accept FLAGA{x} as FLAG{x}, strip whitespace
+  function normalizeFlag(s) {
+    return s.trim().toUpperCase()
+      .replace(/^FLAGA\{/, 'FLAG{')   // PL: FLAGA{x} → FLAG{x}
+      .replace(/^FLAGĂ\{/, 'FLAG{')   // typo variant
+      .replace(/\s+/g, '');           // remove spaces
+  }
+  const correct = normalizeFlag(task.answer) === normalizeFlag(submitted);
+  const bonusPoints = correct ? calcBonus(task.points, eventData.startedAt) : 0;
 
   const answerData = {
-    userId: session.id,
-    userLogin: session.login,
-    taskId,
-    answer: submitted,
-    correct,
+    userId: session.id, userLogin: session.login,
+    taskId, answer: submitted, correct,
     points: correct ? task.points : 0,
-    solvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    bonusPoints,
+    totalPoints: correct ? task.points + bonusPoints : 0,
+    solvedAt: new Date().toISOString(),
     eventId: eventData.id
   };
 
   try {
-    // Upsert answer doc
     const answerId = `${session.id}_${taskId}`;
-    // Only save if not already correctly answered
     await db.collection('events').doc(eventData.id).collection('answers').doc(answerId).set(answerData, { merge: true });
-
-    userAnswers[taskId] = { ...answerData, correct };
+    userAnswers[taskId] = answerData;
 
     if (correct) {
       input.className = 'flag-input correct';
+      const bonusMsg = bonusPoints > 0 ? ` (+${bonusPoints} bonus!)` : '';
       resultEl.innerHTML = `<span class="flag-result correct">✓ ${t('correct')}</span>`;
-      showToast(`🎯 ${t('correct')} +${task.points} pts`, 'success');
+      showToast(`🎯 ${t('correct')} +${task.points + bonusPoints} pts${bonusMsg}`, 'success');
       input.disabled = true;
       updateScore();
-      // Re-render that card
       const card = document.getElementById(`ptask-${taskId}`);
-      const newCard = buildParticipantTaskCard(task, userAnswers[taskId], true, currentLang === 'en', false);
+      const newCard = buildParticipantTaskCard(task, answerData, true, currentLang === 'en', false);
       card.replaceWith(newCard);
-      togglePTask(taskId); // keep open
+      togglePTask(taskId);
     } else {
       input.className = 'flag-input wrong';
       resultEl.innerHTML = `<span class="flag-result wrong">✗ ${t('wrong')}</span>`;
     }
-  } catch (e) {
-    showToast(t('err_generic'), 'error');
-  }
+  } catch (e) { showToast(t('err_generic'), 'error'); }
 }
 
 function updateScore() {
   let total = 0, solved = 0;
   Object.values(userAnswers).forEach(a => {
-    if (a.correct) { total += (a.points || 0); solved++; }
+    if (a.correct) { total += (a.points || 0) + (a.bonusPoints || 0); solved++; }
   });
   document.getElementById('total-score').textContent = total;
   const pct = tasksData.length > 0 ? (solved / tasksData.length) * 100 : 0;
@@ -311,40 +383,34 @@ async function loadScoreboard() {
   if (!eventData) return;
   const tbody = document.getElementById('scoreboard-tbody');
   tbody.innerHTML = `<tr><td colspan="4"><div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></td></tr>`;
-
   try {
     const snap = await db.collection('events').doc(eventData.id).collection('answers').get();
-
-    // Aggregate by user
     const byUser = {};
     snap.forEach(doc => {
       const d = doc.data();
       if (!byUser[d.userId]) byUser[d.userId] = { login: d.userLogin, total: 0, solved: 0, lastSolve: null };
       if (d.correct) {
-        byUser[d.userId].total += (d.points || 0);
+        byUser[d.userId].total += (d.points || 0) + (d.bonusPoints || 0);
         byUser[d.userId].solved++;
-        const ts = d.solvedAt?.toDate ? d.solvedAt.toDate() : null;
+        const ts = d.solvedAt ? new Date(d.solvedAt) : null;
         if (ts && (!byUser[d.userId].lastSolve || ts > byUser[d.userId].lastSolve)) {
           byUser[d.userId].lastSolve = ts;
         }
       }
     });
-
     const sorted = Object.entries(byUser).sort((a, b) => b[1].total - a[1].total || (a[1].lastSolve?.getTime() || 0) - (b[1].lastSolve?.getTime() || 0));
     const maxScore = sorted[0]?.[1].total || 1;
-
     tbody.innerHTML = '';
     if (sorted.length === 0) {
       tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:30px">Brak danych</td></tr>`;
       return;
     }
-
     sorted.forEach(([uid, data], i) => {
       const rank = i + 1;
       const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
       const isMe = uid === session.id;
       const pct = Math.round((data.total / maxScore) * 100);
-      tbody.innerHTML += `<tr style="${isMe ? 'background:rgba(0,212,255,0.05);' : ''}">
+      tbody.innerHTML += `<tr style="${isMe ? 'background:rgba(46,204,113,0.05);' : ''}">
         <td class="rank-col" style="font-family:var(--font-mono)">${rankEmoji}</td>
         <td style="font-weight:${isMe ? 700 : 400}">${data.login}${isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(Ty)</span>' : ''}</td>
         <td>

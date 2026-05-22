@@ -123,6 +123,13 @@ const TRANSLATIONS = {
     stage2_name: "ETAP 2: Prawdziwy Cel",
     stage2_sub: "Brewery Incident Response",
 
+    // Waiting screen
+    waiting_title: "Czekaj na start",
+    waiting_desc: "Administrator zaraz uruchomi warsztat. Bądź gotowy!",
+    waiting_hint: "Ta strona odświeży się automatycznie po uruchomieniu",
+    bonus_label: "Bonus za szybkość",
+    event_pending: "Oczekuje na start",
+
     // Errors
     err_login: "Nieprawidłowy login lub hasło",
     err_required: "To pole jest wymagane",
@@ -262,6 +269,13 @@ const TRANSLATIONS = {
     stage1_sub: "Replay Attack on the Brewery",
     stage2_name: "STAGE 2: The Real Target",
     stage2_sub: "Brewery Incident Response",
+
+    // Waiting screen
+    waiting_title: "Waiting for start",
+    waiting_desc: "The administrator will start the workshop shortly. Get ready!",
+    waiting_hint: "This page will refresh automatically when the workshop starts",
+    bonus_label: "Speed bonus",
+    event_pending: "Pending start",
 
     // Errors
     err_login: "Invalid username or password",
