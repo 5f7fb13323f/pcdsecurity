@@ -181,7 +181,7 @@
         const d = doc.data();
         if (!byUser[d.userId]) byUser[d.userId] = { login: d.userLogin, total: 0, solved: 0, lastSolve: null };
         if (d.correct) {
-          byUser[d.userId].total += (d.points || 0);
+          byUser[d.userId].total += (d.points || 0) + (d.bonusPoints || 0);
           byUser[d.userId].solved++;
           const ts = d.solvedAt?.toDate ? d.solvedAt.toDate() : null;
           if (ts && (!byUser[d.userId].lastSolve || ts > byUser[d.userId].lastSolve)) {

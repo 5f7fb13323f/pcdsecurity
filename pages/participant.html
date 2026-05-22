@@ -97,31 +97,54 @@
     <main class="main-content">
       <!-- TASKS PAGE -->
       <div id="p-page-tasks">
-        <div id="event-banner" class="event-banner" style="display:none">
-          <div class="event-banner-icon">🍺</div>
-          <div style="flex:1">
-            <div class="event-banner-title" id="ev-banner-name">–</div>
-            <div class="event-banner-meta" id="ev-banner-meta">–</div>
-            <div class="progress-bar" style="max-width:300px;margin-top:8px">
-              <div class="progress-fill" id="ev-progress" style="width:0%"></div>
+
+        <!-- WAITING SCREEN (status: pending) -->
+        <div id="waiting-screen" style="display:none">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:24px">
+            <div style="font-size:5rem;animation:float 3s ease-in-out infinite">⏳</div>
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:1.8rem;font-weight:700;margin-bottom:8px" data-i18n="waiting_title">Czekaj na start</h2>
+              <p style="color:var(--text2);font-size:0.95rem" data-i18n="waiting_desc">Administrator zaraz uruchomi warsztat. Bądź gotowy!</p>
+              <div style="margin-top:16px;font-family:var(--font-mono);font-size:0.9rem;color:var(--accent);background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:8px;padding:12px 24px" id="waiting-event-name"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+            <p style="font-size:0.78rem;color:var(--text3);font-family:var(--font-mono)" data-i18n="waiting_hint">Ta strona odświeży się automatycznie po uruchomieniu</p>
+          </div>
+        </div>
+
+        <!-- ACTIVE / FINISHED VIEW -->
+        <div id="tasks-view" style="display:none">
+          <div id="event-banner" class="event-banner" style="display:none">
+            <div class="event-banner-icon">🍺</div>
+            <div style="flex:1">
+              <div class="event-banner-title" id="ev-banner-name">–</div>
+              <div class="event-banner-meta" id="ev-banner-meta">–</div>
+              <div id="bonus-indicator" style="margin-top:6px;font-size:0.85rem;display:flex;align-items:center;gap:4px"></div>
+              <div class="progress-bar" style="max-width:300px;margin-top:8px">
+                <div class="progress-fill" id="ev-progress" style="width:0%"></div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--accent)" id="total-score">0</div>
+              <div style="font-size:0.75rem;color:var(--text3)" data-i18n="points">Punkty</div>
             </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--accent2)" id="total-score">0</div>
-            <div style="font-size:0.75rem;color:var(--text3)" data-i18n="points">Punkty</div>
+
+          <div id="review-banner" class="review-banner" style="display:none">
+            <span>✓</span> <span data-i18n="event_ended">Wydarzenie zakończone — tryb przeglądu</span>
           </div>
+
+          <div id="tasks-container" class="task-grid"></div>
         </div>
 
-        <div id="review-banner" class="review-banner" style="display:none">
-          <span>✓</span> <span data-i18n="event_ended">Wydarzenie zakończone — tryb przeglądu</span>
-        </div>
-
+        <!-- NO EVENT -->
         <div id="no-event-msg" class="empty-state" style="display:none">
           <div class="icon">◈</div>
           <p data-i18n="no_event">Nie przypisano do żadnego wydarzenia</p>
         </div>
 
-        <div id="tasks-container" class="task-grid"></div>
       </div>
 
       <!-- SCOREBOARD PAGE -->
