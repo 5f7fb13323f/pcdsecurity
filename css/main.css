@@ -799,3 +799,7 @@ body {
 .sidebar-logo-img {
   width: 32px; height: 32px; object-fit: contain;
 }
+.event-status.pending {
+  background: rgba(247,201,72,0.1); color: var(--accent4);
+  border: 1px solid rgba(247,201,72,0.3);
+}
