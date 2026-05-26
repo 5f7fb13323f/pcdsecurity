@@ -68,19 +68,19 @@ async function loadDashboard() {
     const container = document.getElementById('dash-events-list');
     const recent = evSnap.docs.slice(0, 5);
     if (recent.length === 0) {
-      container.innerHTML = `<div class="empty-state"><div class="icon">◈</div><p>Brak wydarzeń</p></div>`;
+      container.innerHTML = `<div class="empty-state"><div class="icon">◈</div><p>${t('no_events')}</p></div>`;
       return;
     }
     container.innerHTML = `<table class="data-table">
-      <thead><tr><th>Nazwa</th><th>Data</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>${t('name')}</th><th>${t('event_date')}</th><th>${t('status')}</th><th></th></tr></thead>
       <tbody>${recent.map(doc => {
         const ev = doc.data();
         const date = ev.date || '';
         return `<tr>
           <td style="font-weight:600">${ev.name}</td>
           <td>${date}</td>
-          <td><span class="badge ${ev.status === 'active' ? 'badge-green' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : t('event_finished')}</span></td>
-          <td><button class="btn-secondary btn-sm" onclick="openEventDetail('${doc.id}')">Otwórz</button></td>
+          <td><span class="badge ${ev.status === 'active' ? 'badge-green' : ev.status === 'pending' ? 'badge-yellow' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : ev.status === 'pending' ? t('event_pending') : t('event_finished')}</span></td>
+          <td><button class="btn-secondary btn-sm" onclick="openEventDetail('${doc.id}')">${t('btn_open')}</button></td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -96,7 +96,7 @@ async function loadEvents() {
   try {
     const snap = await db.collection('events').orderBy('createdAt', 'desc').get();
     if (snap.empty) {
-      container.innerHTML = `<div class="empty-state"><div class="icon">◈</div><p>Brak wydarzeń. Utwórz pierwsze wydarzenie.</p></div>`;
+      container.innerHTML = `<div class="empty-state"><div class="icon">◈</div><p>${t('no_events_create')}</p></div>`;
       return;
     }
     container.innerHTML = '';
@@ -112,9 +112,9 @@ async function loadEvents() {
             <div style="font-size:0.8rem;color:var(--text2)">${ev.description || ''}</div>
             <div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-family:var(--font-mono)">${ev.date || ''}</div>
           </div>
-          <span class="badge ${ev.status === 'active' ? 'badge-green' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : t('event_finished')}</span>
+          <span class="badge ${ev.status === 'active' ? 'badge-green' : ev.status === 'pending' ? 'badge-yellow' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : ev.status === 'pending' ? t('event_pending') : t('event_finished')}</span>
           <div style="display:flex;gap:8px">
-            <button class="btn-secondary btn-sm" onclick="openEventDetail('${ev.id}')">⚙ Zarządzaj</button>
+            <button class="btn-secondary btn-sm" onclick="openEventDetail('${ev.id}')">${t('btn_manage')}</button>
             <button class="btn-secondary btn-sm" onclick="openScoreboard('${ev.id}')">🏆 Scoreboard</button>
             <button class="btn-danger btn-sm" onclick="deleteEvent('${ev.id}')">🗑</button>
           </div>
@@ -127,7 +127,7 @@ async function loadEvents() {
 }
 
 function openCreateEventModal() {
-  const modal = createModal('Utwórz wydarzenie', `
+  const modal = createModal(t('create_event_title'), `
     <div class="form-group">
       <label data-i18n="event_name">Nazwa wydarzenia</label>
       <input type="text" id="ev-name" placeholder="np. Warsztaty Cybersecurity gr.1">
@@ -142,7 +142,7 @@ function openCreateEventModal() {
     </div>
   `, [
     { label: t('cancel'), cls: 'btn-secondary', action: 'close' },
-    { label: '+ Utwórz', cls: 'btn-primary', action: createEvent }
+    { label: t('btn_create'), cls: 'btn-primary', action: createEvent }
   ]);
   setLang(currentLang);
   const today = new Date().toISOString().split('T')[0];
@@ -192,7 +192,7 @@ async function createEvent() {
 }
 
 async function deleteEvent(id) {
-  showConfirm('Czy na pewno chcesz usunąć to wydarzenie? Wszystkie dane zostaną utracone.', async () => {
+  showConfirm(t('delete_event_confirm'), async () => {
     try {
       // Delete subcollections
       const tasks = await db.collection('events').doc(id).collection('tasks').get();
@@ -217,7 +217,7 @@ async function openEventDetail(eventId) {
 
   document.getElementById('detail-event-name').textContent = currentEventData.name;
   document.getElementById('detail-event-meta').textContent =
-    `${currentEventData.date || ''} · ${currentEventData.status === 'active' ? t('event_active') : t('event_finished')}`;
+    `${currentEventData.date || ''} · ${currentEventData.status === 'active' ? t('event_active') : currentEventData.status === 'pending' ? t('event_pending') : t('event_finished')}`;
 
   const s = currentEventData.status || 'pending';
   document.getElementById('btn-start-event').style.display = (s === 'pending') ? '' : 'none';
@@ -299,30 +299,30 @@ function openEditTask(taskId) {
 
   createModal(`Edytuj zadanie ${taskId}: ${task.name}`, `
     <div class="tabs" style="margin-bottom:16px">
-      <button class="tab-btn active" onclick="switchEditTab('content',this)">📝 Treść</button>
-      <button class="tab-btn" onclick="switchEditTab('media',this)">🖼 Media</button>
+      <button class="tab-btn active" onclick="switchEditTab('content',this)">${t('tab_content')}</button>
+      <button class="tab-btn" onclick="switchEditTab('media',this)">${t('tab_media')}</button>
     </div>
 
     <!-- CONTENT TAB -->
     <div id="edit-tab-content">
       <div class="form-group">
-        <label>Kontekst (PL)</label>${ta('edit-context', task.context, 'Treść kontekstu po polsku...')}
-        <label>Context (EN)</label>${ta('edit-context-en', task.contextEn, 'Context text in English...')}
+        <label>${t('label_context_pl')}</label>${ta('edit-context', task.context, 'Treść kontekstu po polsku...')}
+        <label>${t('label_context_en')}</label>${ta('edit-context-en', task.contextEn, 'Context text in English...')}
       </div>
       <div class="form-group">
-        <label>Pytanie (PL)</label>${ta('edit-question', task.question, 'Treść pytania po polsku...')}
-        <label>Question (EN)</label>${ta('edit-question-en', task.questionEn, 'Question text in English...')}
+        <label>${t('label_question_pl')}</label>${ta('edit-question', task.question, 'Treść pytania po polsku...')}
+        <label>${t('label_question_en')}</label>${ta('edit-question-en', task.questionEn, 'Question text in English...')}
       </div>
       <div class="form-group">
-        <label>Narracja / Intro (PL)</label>${ta('edit-narrative', task.narrative, 'Opcjonalna narracja...')}
-        <label>Narrative (EN)</label>${ta('edit-narrative-en', task.narrativeEn, 'Optional narrative...')}
+        <label>${t('label_narrative_pl')}</label>${ta('edit-narrative', task.narrative, 'Opcjonalna narracja...')}
+        <label>${t('label_narrative_en')}</label>${ta('edit-narrative-en', task.narrativeEn, 'Optional narrative...')}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>Odpowiedź (flaga)</label>${inp('edit-answer', task.answer, 'FLAG{...}')}
+          <label>${t('label_answer')}</label>${inp('edit-answer', task.answer, 'FLAG{...}')}
         </div>
         <div class="form-group">
-          <label>Format (podpowiedź)</label>${inp('edit-format', task.format, 'FLAG{Słowo}')}
+          <label>${t('label_format')}</label>${inp('edit-format', task.format, 'FLAG{Słowo}')}
         </div>
       </div>
       <div class="form-group">
@@ -442,7 +442,7 @@ async function saveTaskEdit(taskId) {
     }
     currentTasksData[String(taskId)] = { ...currentTasksData[String(taskId)], ...updateData };
     closeModal();
-    showToast('Zadanie zaktualizowane!', 'success');
+    showToast(t('task_updated'), 'success');
     loadAdminTasks(currentEventId);
   } catch (e) {
     console.error(e);
@@ -451,7 +451,7 @@ async function saveTaskEdit(taskId) {
 }
 
 async function startEvent() {
-  showConfirm('Uruchomić warsztat? Uczestnicy zobaczą zadania i zacznie się odliczanie czasu dla bonusów punktowych.', async () => {
+  showConfirm(t('start_event_confirm'), async () => {
     try {
       const startedAt = new Date().toISOString();
       await db.collection('events').doc(currentEventId).update({ status: 'active', startedAt });
@@ -460,7 +460,7 @@ async function startEvent() {
       document.getElementById('btn-start-event').style.display = 'none';
       document.getElementById('btn-end-event').style.display = '';
       updateEventDetailMeta();
-      showToast('🚀 Warsztat uruchomiony! Uczestnicy widzą zadania.', 'success');
+      showToast(t('workshop_started'), 'success');
     } catch (e) { showToast(t('err_generic'), 'error'); }
   });
 }
@@ -473,13 +473,13 @@ async function endEvent() {
       document.getElementById('btn-end-event').style.display = 'none';
       document.getElementById('btn-start-event').style.display = 'none';
       updateEventDetailMeta();
-      showToast('Wydarzenie zakończone', 'success');
+      showToast(t('event_ended_msg'), 'success');
     } catch (e) { showToast(t('err_generic'), 'error'); }
   });
 }
 
 function updateEventDetailMeta() {
-  const statusMap = { pending: '⏳ Oczekuje na start', active: '▶ Aktywne', finished: '⏹ Zakończone' };
+  const statusMap = { pending: `⏳ ${t('event_pending')}`, active: `▶ ${t('event_active')}`, finished: `⏹ ${t('event_finished')}` };
   const s = currentEventData.status || 'pending';
   document.getElementById('detail-event-meta').textContent =
     `${currentEventData.date || ''} · ${statusMap[s] || s}`;
@@ -567,31 +567,31 @@ function openEditGlobalTask(taskId) {
 
   createModal(`Edytuj szablon globalny — Zadanie ${taskId}`, `
     <div style="background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.8rem;color:var(--accent)">
-      ℹ Zmiany będą stosowane do wszystkich nowych wydarzeń
+      ${t('global_template_info')}
     </div>
     <div class="tabs" style="margin-bottom:16px">
-      <button class="tab-btn active" onclick="switchGEditTab('content',this)">📝 Treść</button>
-      <button class="tab-btn" onclick="switchGEditTab('media',this)">🖼 Media</button>
+      <button class="tab-btn active" onclick="switchGEditTab('content',this)">${t('tab_content')}</button>
+      <button class="tab-btn" onclick="switchGEditTab('media',this)">${t('tab_media')}</button>
     </div>
     <div id="gedit-tab-content">
       <div class="form-group">
-        <label>Kontekst (PL)</label>${ta('gedit-context', task.context, 'Treść kontekstu...')}
-        <label>Context (EN)</label>${ta('gedit-context-en', task.contextEn, 'Context in English...')}
+        <label>${t('label_context_pl')}</label>${ta('gedit-context', task.context, 'Treść kontekstu...')}
+        <label>${t('label_context_en')}</label>${ta('gedit-context-en', task.contextEn, 'Context in English...')}
       </div>
       <div class="form-group">
-        <label>Pytanie (PL)</label>${ta('gedit-question', task.question, 'Treść pytania...')}
-        <label>Question (EN)</label>${ta('gedit-question-en', task.questionEn, 'Question in English...')}
+        <label>${t('label_question_pl')}</label>${ta('gedit-question', task.question, 'Treść pytania...')}
+        <label>${t('label_question_en')}</label>${ta('gedit-question-en', task.questionEn, 'Question in English...')}
       </div>
       <div class="form-group">
-        <label>Narracja (PL)</label>${ta('gedit-narrative', task.narrative, 'Opcjonalna narracja...')}
-        <label>Narrative (EN)</label>${ta('gedit-narrative-en', task.narrativeEn, 'Optional narrative...')}
+        <label>${t('label_narrative_pl')}</label>${ta('gedit-narrative', task.narrative, 'Opcjonalna narracja...')}
+        <label>${t('label_narrative_en')}</label>${ta('gedit-narrative-en', task.narrativeEn, 'Optional narrative...')}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>Odpowiedź (flaga)</label>${inp('gedit-answer', task.answer, 'FLAG{...}')}
+          <label>${t('label_answer')}</label>${inp('gedit-answer', task.answer, 'FLAG{...}')}
         </div>
         <div class="form-group">
-          <label>Format</label>${inp('gedit-format', task.format, 'FLAG{Słowo}')}
+          <label>${t('label_format')}</label>${inp('gedit-format', task.format, 'FLAG{Słowo}')}
         </div>
       </div>
       <div class="form-group">
@@ -625,7 +625,7 @@ function openEditGlobalTask(taskId) {
     </div>
   `, [
     { label: t('cancel'), cls: 'btn-secondary', action: 'close' },
-    { label: '💾 Zapisz szablon', cls: 'btn-primary', action: () => saveGlobalTask(taskId) }
+    { label: t('save_template'), cls: 'btn-primary', action: () => saveGlobalTask(taskId) }
   ], '640px');
 }
 
@@ -689,7 +689,7 @@ async function saveGlobalTask(taskId) {
     await db.collection('taskTemplates').doc(String(taskId)).update(updateData);
     if (window._globalTasksMap) window._globalTasksMap[String(taskId)] = { ...window._globalTasksMap[String(taskId)], ...updateData };
     closeModal();
-    showToast('Szablon globalny zapisany!', 'success');
+    showToast(t('template_saved'), 'success');
     loadGlobalTasks();
   } catch(e) {
     showToast(t('err_generic'), 'error');
@@ -705,7 +705,7 @@ async function loadEventParticipants(eventId) {
 
   const snap = await db.collection('users').where('eventId', '==', eventId).where('role', '==', 'participant').get();
   if (snap.empty) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">◉</div><p>Brak przypisanych uczestników</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">◉</div><p>${t('no_participants')}</p></div>`;
     return;
   }
 
@@ -722,7 +722,7 @@ async function loadEventParticipants(eventId) {
   });
 
   container.innerHTML = `<table class="data-table">
-    <thead><tr><th>Login</th><th>Punkty</th><th>Rozwiązane</th><th>Akcje</th></tr></thead>
+    <thead><tr><th>${t('th_login')}</th><th>${t('th_points')}</th><th>${t('th_solved_short')}</th><th>${t('th_actions')}</th></tr></thead>
     <tbody>${snap.docs.map(doc => {
       const u = doc.data();
       const sc = scoresByUser[doc.id] || { total: 0, solved: 0 };
@@ -730,20 +730,20 @@ async function loadEventParticipants(eventId) {
         <td style="font-weight:600">${u.login}</td>
         <td><span style="color:var(--accent2);font-family:var(--font-mono);font-weight:700">${sc.total}</span></td>
         <td>${sc.solved}/15</td>
-        <td><button class="btn-danger btn-sm" onclick="removeParticipant('${doc.id}')">Odepnij</button></td>
+        <td><button class="btn-danger btn-sm" onclick="removeParticipant('${doc.id}')">${t('btn_unassign')}</button></td>
       </tr>`;
     }).join('')}</tbody>
   </table>`;
 }
 
 function openAssignModal() {
-  createModal('Przypisz uczestnika do wydarzenia', `
+  createModal(t('assign_participant_title'), `
     <div class="form-group">
       <label>Wybierz uczestnika</label>
       <select id="assign-user-select"><option value="">Ładowanie...</option></select>
     </div>`, [
     { label: t('cancel'), cls: 'btn-secondary', action: 'close' },
-    { label: '+ Przypisz', cls: 'btn-primary', action: assignParticipant }
+    { label: t('btn_do_assign'), cls: 'btn-primary', action: assignParticipant }
   ]);
   loadUnassignedUsers();
 }
@@ -751,7 +751,7 @@ function openAssignModal() {
 async function loadUnassignedUsers() {
   const snap = await db.collection('users').where('role', '==', 'participant').get();
   const sel = document.getElementById('assign-user-select');
-  sel.innerHTML = '<option value="">-- Wybierz --</option>';
+  sel.innerHTML = `<option value="">${t('select_participant')}</option>`;
   snap.forEach(doc => {
     const u = doc.data();
     if (!u.eventId || u.eventId === currentEventId) {
@@ -774,15 +774,15 @@ async function assignParticipant() {
   try {
     await db.collection('users').doc(userId).update({ eventId: currentEventId });
     closeModal();
-    showToast('Uczestnik przypisany!', 'success');
+    showToast(t('participant_assigned'), 'success');
     loadEventParticipants(currentEventId);
   } catch (e) { showToast(t('err_generic'), 'error'); }
 }
 
 async function removeParticipant(userId) {
-  showConfirm('Odpiąć uczestnika od tego wydarzenia?', async () => {
+  showConfirm(t('unassign_confirm'), async () => {
     await db.collection('users').doc(userId).update({ eventId: firebase.firestore.FieldValue.delete() });
-    showToast('Uczestnik odpięty', 'success');
+    showToast(t('participant_unassigned'), 'success');
     loadEventParticipants(currentEventId);
   });
 }
@@ -813,7 +813,7 @@ async function loadUsers() {
       <td><span class="badge ${roleBadge}">${roleLabel}</span></td>
       <td style="font-size:0.8rem;color:var(--text2)">${evName}</td>
       <td><div class="actions">
-        <button class="btn-secondary btn-sm" onclick="openChangePassModal('${doc.id}', '${u.login}')">🔑 Hasło</button>
+        <button class="btn-secondary btn-sm" onclick="openChangePassModal('${doc.id}', '${u.login}')">🔑 ${t('change_password')}</button>
         <button class="btn-danger btn-sm" onclick="deleteUser('${doc.id}', '${u.login}')">🗑</button>
       </div></td>
     </tr>`;
@@ -865,7 +865,7 @@ async function createUser() {
 }
 
 function openChangePassModal(userId, login) {
-  createModal(`Zmień hasło: ${login}`, `
+  createModal(`${t('change_pass_title')}: ${login}`, `
     <div class="form-group">
       <label>${t('new_password')}</label>
       <div class="password-wrap">
@@ -887,7 +887,7 @@ function openChangePassModal(userId, login) {
 }
 
 async function deleteUser(id, login) {
-  showConfirm(`Usunąć użytkownika <strong>${login}</strong>?`, async () => {
+  showConfirm(`${t('delete_user_confirm')} <strong>${login}</strong>?`, async () => {
     await db.collection('users').doc(id).delete();
     showToast(t('user_deleted'), 'success');
     loadUsers();
@@ -906,17 +906,51 @@ async function changeAdminPassword() {
   if (!cur || !newP || !conf) { showMsg(msg, t('err_required'), 'error'); return; }
   if (newP !== conf) { showMsg(msg, t('passwords_mismatch'), 'error'); return; }
 
-  const curHash = await sha256(cur);
-  const myDoc = await db.collection('users').doc(session.id).get();
-  if (myDoc.data().passwordHash !== curHash) {
-    showMsg(msg, t('err_login'), 'error'); return;
+  try {
+    const curHash = await sha256(cur);
+    const newHash = await sha256(newP);
+
+    // Try by session.id first, fallback to login lookup
+    let userDocRef = null;
+    let userDocData = null;
+
+    if (session.id) {
+      const byId = await db.collection('users').doc(session.id).get();
+      if (byId.exists) {
+        userDocRef = byId.ref;
+        userDocData = byId.data();
+      }
+    }
+
+    // Fallback: look up by login
+    if (!userDocRef) {
+      const snap = await db.collection('users').where('login', '==', session.login).limit(1).get();
+      if (!snap.empty) {
+        userDocRef = snap.docs[0].ref;
+        userDocData = snap.docs[0].data();
+        // Update session id for future calls
+        session.id = snap.docs[0].id;
+        setSession(session);
+      }
+    }
+
+    if (!userDocRef) {
+      showMsg(msg, t('err_generic'), 'error'); return;
+    }
+
+    if (userDocData.passwordHash !== curHash) {
+      showMsg(msg, t('err_login'), 'error'); return;
+    }
+
+    await userDocRef.update({ passwordHash: newHash });
+    showMsg(msg, t('password_changed'), 'success');
+    document.getElementById('cur-pass').value = '';
+    document.getElementById('new-pass').value = '';
+    document.getElementById('conf-pass').value = '';
+  } catch(e) {
+    console.error('changeAdminPassword error:', e);
+    showMsg(msg, t('err_generic'), 'error');
   }
-  const newHash = await sha256(newP);
-  await db.collection('users').doc(session.id).update({ passwordHash: newHash });
-  showMsg(msg, t('password_changed'), 'success');
-  document.getElementById('cur-pass').value = '';
-  document.getElementById('new-pass').value = '';
-  document.getElementById('conf-pass').value = '';
 }
 
 function showMsg(el, text, type) {

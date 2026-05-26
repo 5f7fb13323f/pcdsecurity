@@ -57,6 +57,7 @@ const TRANSLATIONS = {
     end_event: "Zakończ wydarzenie",
     end_event_confirm: "Czy na pewno chcesz zakończyć to wydarzenie? Uczestnicy będą mogli zobaczyć wyniki i poprawne odpowiedzi.",
     event_active: "Aktywne",
+    event_pending: "Oczekuje na start",
     event_finished: "Zakończone",
     event_created: "Wydarzenie utworzone!",
 
@@ -129,6 +130,75 @@ const TRANSLATIONS = {
     waiting_hint: "Ta strona odświeży się automatycznie po uruchomieniu",
     bonus_label: "Bonus za szybkość",
     event_pending: "Oczekuje na start",
+
+
+    // Admin - dynamic strings
+    no_events: "Brak wydarzeń",
+    no_events_create: "Brak wydarzeń. Utwórz pierwsze wydarzenie.",
+    btn_open: "Otwórz",
+    btn_manage: "⚙ Zarządzaj",
+    create_event_title: "Utwórz wydarzenie",
+    btn_create: "+ Utwórz",
+    delete_event_confirm: "Czy na pewno chcesz usunąć to wydarzenie? Wszystkie dane zostaną utracone.",
+    start_event_confirm: "Uruchomić warsztat? Uczestnicy zobaczą zadania i zacznie się odliczanie czasu dla bonusów punktowych.",
+    tab_content: "📝 Treść",
+    tab_media: "🖼 Media",
+    label_context_pl: "Kontekst (PL)",
+    label_context_en: "Context (EN)",
+    label_question_pl: "Pytanie (PL)",
+    label_question_en: "Question (EN)",
+    label_narrative_pl: "Narracja / Intro (PL)",
+    label_narrative_en: "Narrative (EN)",
+    label_answer: "Odpowiedź (flaga)",
+    label_format: "Format (podpowiedź)",
+    no_images: "Brak obrazków",
+    no_files: "Brak plików",
+    global_template_info: "ℹ Zmiany będą stosowane do wszystkich nowych wydarzeń",
+    no_participants: "Brak przypisanych uczestników",
+    th_login: "Login",
+    th_points: "Punkty",
+    th_solved_short: "Rozwiązane",
+    th_actions: "Akcje",
+    select_participant: "-- Wybierz --",
+    select_loading: "Ładowanie...",
+    already_assigned: "(już przypisany do tego wydarzenia)",
+    assigned_other: "(przypisany do innego)",
+    unassign_confirm: "Odpiąć uczestnika od tego wydarzenia?",
+    btn_unassign: "Odepnij",
+    change_pass_title: "Zmień hasło",
+    delete_user_confirm: "Usunąć użytkownika",
+    task_updated: "Zadanie zaktualizowane!",
+    template_saved: "Szablon globalny zapisany!",
+    workshop_started: "🚀 Warsztat uruchomiony! Uczestnicy widzą zadania.",
+    event_ended_msg: "Wydarzenie zakończone",
+    participant_assigned: "Uczestnik przypisany!",
+    participant_unassigned: "Uczestnik odpięty",
+    event_deleted: "Wydarzenie usunięte",
+    // Dashboard labels
+    stat_events: "Wydarzeń",
+    stat_users: "Użytkowników",
+    stat_tasks: "Zadań",
+    stat_active_label: "Aktywnych",
+    recent_events: "Ostatnie wydarzenia",
+    see_all: "Zobacz wszystkie",
+    // Task templates page
+    nav_task_templates: "Szablon zadań",
+    task_templates_title: "Szablon zadań",
+    task_templates_subtitle: "Konfiguruj obrazki i pliki raz — każde nowe wydarzenie je odziedziczy automatycznie",
+    btn_refresh: "↻ Odśwież",
+    template_note: "Zmiany w szablonie globalnym <strong>nie aktualizują</strong> już istniejących wydarzeń — tylko nowo tworzonych.",
+    save_template: "💾 Zapisz szablon",
+    // Tabs in event detail
+    tab_tasks_15: "📋 Zadania (15)",
+    tab_participants: "👥 Uczestnicy",
+    assigned_participants: "Przypisani uczestnicy",
+    btn_assign: "+ Przypisz uczestnika",
+    assign_participant_title: "Przypisz uczestnika do wydarzenia",
+    select_participant_label: "Wybierz uczestnika",
+    btn_do_assign: "+ Przypisz",
+    // Login placeholders
+    login_placeholder: "twój login",
+    btn_back: "← Powrót",
 
     // Errors
     err_login: "Nieprawidłowy login lub hasło",
@@ -204,6 +274,7 @@ const TRANSLATIONS = {
     end_event: "End event",
     end_event_confirm: "Are you sure you want to end this event? Participants will be able to see results and correct answers.",
     event_active: "Active",
+    event_pending: "Pending start",
     event_finished: "Finished",
     event_created: "Event created!",
 
@@ -277,6 +348,75 @@ const TRANSLATIONS = {
     bonus_label: "Speed bonus",
     event_pending: "Pending start",
 
+
+    // Admin - dynamic strings
+    no_events: "No events",
+    no_events_create: "No events. Create your first event.",
+    btn_open: "Open",
+    btn_manage: "⚙ Manage",
+    create_event_title: "Create event",
+    btn_create: "+ Create",
+    delete_event_confirm: "Are you sure you want to delete this event? All data will be lost.",
+    start_event_confirm: "Start the workshop? Participants will see the tasks and the time bonus countdown will begin.",
+    tab_content: "📝 Content",
+    tab_media: "🖼 Media",
+    label_context_pl: "Kontekst (PL)",
+    label_context_en: "Context (EN)",
+    label_question_pl: "Pytanie (PL)",
+    label_question_en: "Question (EN)",
+    label_narrative_pl: "Narracja / Intro (PL)",
+    label_narrative_en: "Narrative (EN)",
+    label_answer: "Answer (flag)",
+    label_format: "Format (hint)",
+    no_images: "No images",
+    no_files: "No files",
+    global_template_info: "ℹ Changes will apply to all new events",
+    no_participants: "No participants assigned",
+    th_login: "Username",
+    th_points: "Points",
+    th_solved_short: "Solved",
+    th_actions: "Actions",
+    select_participant: "-- Select --",
+    select_loading: "Loading...",
+    already_assigned: "(already assigned to this event)",
+    assigned_other: "(assigned to another event)",
+    unassign_confirm: "Remove this participant from the event?",
+    btn_unassign: "Remove",
+    change_pass_title: "Change password",
+    delete_user_confirm: "Delete user",
+    task_updated: "Task updated!",
+    template_saved: "Global template saved!",
+    workshop_started: "🚀 Workshop started! Participants can see the tasks.",
+    event_ended_msg: "Event finished",
+    participant_assigned: "Participant assigned!",
+    participant_unassigned: "Participant removed",
+    event_deleted: "Event deleted",
+    // Dashboard labels
+    stat_events: "Events",
+    stat_users: "Users",
+    stat_tasks: "Tasks",
+    stat_active_label: "Active",
+    recent_events: "Recent events",
+    see_all: "See all",
+    // Task templates page
+    nav_task_templates: "Task templates",
+    task_templates_title: "Task Templates",
+    task_templates_subtitle: "Configure images and files once — every new event will inherit them automatically",
+    btn_refresh: "↻ Refresh",
+    template_note: "Changes to the global template <strong>do not update</strong> existing events — only newly created ones.",
+    save_template: "💾 Save template",
+    // Tabs in event detail
+    tab_tasks_15: "📋 Tasks (15)",
+    tab_participants: "👥 Participants",
+    assigned_participants: "Assigned participants",
+    btn_assign: "+ Assign participant",
+    assign_participant_title: "Assign participant to event",
+    select_participant_label: "Select participant",
+    btn_do_assign: "+ Assign",
+    // Login placeholders
+    login_placeholder: "your username",
+    btn_back: "← Back",
+
     // Errors
     err_login: "Invalid username or password",
     err_required: "This field is required",
@@ -329,6 +469,11 @@ function setLang(lang) {
   if (typeof renderTasks === 'function' && tasksData && tasksData.length) renderTasks();
   // Re-render admin tasks if admin page
   if (typeof loadAdminTasks === 'function' && currentEventId) loadAdminTasks(currentEventId);
+  // Re-render admin event lists (status badges)
+  if (typeof loadEvents === 'function' && document.getElementById('page-events')?.style.display !== 'none') loadEvents();
+  if (typeof loadDashboard === 'function' && document.getElementById('page-dashboard')?.style.display !== 'none') loadDashboard();
+  // Update event detail meta if open
+  if (typeof updateEventDetailMeta === 'function' && currentEventId) updateEventDetailMeta();
 }
 
 document.addEventListener('DOMContentLoaded', () => setLang(currentLang));
