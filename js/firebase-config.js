@@ -7,13 +7,15 @@
 // ============================================================
 
 const FIREBASE_CONFIG = {
-  apiKey: "TWOJ_API_KEY",
-  authDomain: "TWOJ_PROJECT.firebaseapp.com",
-  projectId: "TWOJ_PROJECT_ID",
-  storageBucket: "TWOJ_PROJECT.firebasestorage.app",
-  messagingSenderId: "TWOJ_SENDER_ID",
-  appId: "TWOJ_APP_ID"
+  apiKey: "AIzaSyCOcbE2ChioDYXE9SOTrGoegQfAbpkuYhU",
+  authDomain: "workshop2605a.firebaseapp.com",
+  projectId: "workshop2605a",
+  storageBucket: "workshop2605a.firebasestorage.app",
+  messagingSenderId: "207378954403",
+  appId: "1:207378954403:web:b12eece1400db5d4622716"
 };
+
+
 
 // ============================================================
 // INICJALIZACJA FIREBASE
