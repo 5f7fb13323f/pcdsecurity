@@ -181,7 +181,7 @@
         const d = doc.data();
         if (!byUser[d.userId]) byUser[d.userId] = { login: d.userLogin, total: 0, solved: 0, lastSolve: null };
         if (d.correct) {
-          byUser[d.userId].total += (d.points || 0) + (d.bonusPoints || 0);
+          byUser[d.userId].total = Math.round(((byUser[d.userId].total || 0) + (d.points || 0) + (d.bonusPoints || 0)) * 10000) / 10000;
           byUser[d.userId].solved++;
           const ts = d.solvedAt?.toDate ? d.solvedAt.toDate() : null;
           if (ts && (!byUser[d.userId].lastSolve || ts > byUser[d.userId].lastSolve)) {
@@ -212,7 +212,7 @@
           <td><span class="rank-medal">${medalOrNum}</span></td>
           <td><div class="player-name">${data.login}</div></td>
           <td>
-            <div class="player-score">${data.total} pts</div>
+            <div class="player-score">${Number.isInteger(data.total) ? data.total : data.total.toFixed(2)} pts</div>
             <div class="solved-bar-wrap">
               <div class="score-bar" style="max-width:200px"><div class="score-bar-fill" style="width:${pct}%"></div></div>
             </div>
