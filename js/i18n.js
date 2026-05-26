@@ -124,6 +124,13 @@ const TRANSLATIONS = {
     stage2_name: "ETAP 2: Prawdziwy Cel",
     stage2_sub: "Brewery Incident Response",
 
+    // Nav & bonus
+    nav_my_tasks: "Moje zadania",
+    bonus_time_label: "bonus za czas",
+    bonus_now: "teraz",
+    workshop_started_toast: "🚀 Warsztat rozpoczęty! Powodzenia!",
+    event_finished_toast: "Wydarzenie zostało zakończone przez administratora",
+
     // Waiting screen
     waiting_title: "Czekaj na start",
     waiting_desc: "Administrator zaraz uruchomi warsztat. Bądź gotowy!",
@@ -340,6 +347,20 @@ const TRANSLATIONS = {
     stage1_sub: "Replay Attack on the Brewery",
     stage2_name: "STAGE 2: The Real Target",
     stage2_sub: "Brewery Incident Response",
+
+    // Nav & bonus
+    nav_my_tasks: "Moje zadania",
+    bonus_time_label: "bonus za czas",
+    bonus_now: "teraz",
+    workshop_started_toast: "🚀 Warsztat rozpoczęty! Powodzenia!",
+    event_finished_toast: "Wydarzenie zostało zakończone przez administratora",
+
+    // Nav & bonus
+    nav_my_tasks: "My Tasks",
+    bonus_time_label: "time bonus",
+    bonus_now: "now",
+    workshop_started_toast: "🚀 Workshop started! Good luck!",
+    event_finished_toast: "The event has been ended by the administrator",
 
     // Waiting screen
     waiting_title: "Waiting for start",

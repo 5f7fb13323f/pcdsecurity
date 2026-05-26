@@ -108,13 +108,13 @@ async function initParticipantApp() {
 
     if (oldStatus === 'pending' && newStatus === 'active') {
       // Workshop just started — show tasks page fully
-      showToast('🚀 Warsztat rozpoczęty! Powodzenia!', 'success');
+      showToast(t('workshop_started_toast'), 'success');
       showParticipantPage('tasks');
       await renderMainView();
     } else if (newStatus === 'finished' && oldStatus !== 'finished') {
       document.getElementById('review-banner').style.display = 'flex';
       renderTasks();
-      showToast('Wydarzenie zostało zakończone przez administratora', 'info');
+      showToast(t('event_finished_toast'), 'info');
     }
   });
 
@@ -174,7 +174,7 @@ function updateBonusIndicator() {
   const secs = Math.floor(elapsed % 60);
   el.innerHTML = `
     <span style="color:var(--accent4);font-weight:700">${label}</span>
-    <span style="color:var(--text3);font-size:0.75rem;margin-left:6px">bonus za czas</span>
+    <span style="color:var(--text3);font-size:0.75rem;margin-left:6px">${t('bonus_time_label')}</span>
     <span style="color:var(--text3);font-family:var(--font-mono);font-size:0.75rem;margin-left:8px">${mins}m ${secs}s</span>`;
 }
 
@@ -237,7 +237,7 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
       // Show current bonus available
       const bonusAvail = eventData.startedAt ? calcBonus(task.points, eventData.startedAt) : 0;
       const bonusPct = eventData.startedAt ? Math.round(Math.max(0, 1 - (Date.now() - new Date(eventData.startedAt).getTime()) / 1000 / BONUS_DURATION_SECS) * 100) : 0;
-      const bonusHint = bonusAvail > 0 ? `<span style="color:var(--accent4);font-size:0.78rem">⚡ ${getBonusLabel(eventData.startedAt)} bonus — +${bonusAvail} pkt teraz!</span>` : '';
+      const bonusHint = bonusAvail > 0 ? `<span style="color:var(--accent4);font-size:0.78rem">⚡ ${getBonusLabel(eventData.startedAt)} bonus — +${bonusAvail} ${t('bonus_now')}!</span>` : '';
       inputArea = `
         ${bonusHint}
         <div class="flag-input-wrap" style="margin-top:8px">
