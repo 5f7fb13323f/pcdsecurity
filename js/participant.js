@@ -25,7 +25,8 @@ function calcBonus(basePoints, startedAt) {
   const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
   if (elapsed >= BONUS_DURATION_SECS) return 0;
   const multiplier = 1 - (elapsed / BONUS_DURATION_SECS);
-  return Math.round(basePoints * multiplier);
+  // Keep 4 decimal places — every second produces a unique value
+  return Math.round(basePoints * multiplier * 10000) / 10000;
 }
 
 function getBonusLabel(startedAt) {
@@ -280,7 +281,10 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
       <span class="task-chevron" id="pchev-${task.id}">▼</span>
     </div>
     <div class="task-body" id="ptask-body-${task.id}" style="display:none">
-      ${narrative ? `<div style="background:rgba(46,204,113,0.04);border:1px solid rgba(46,204,113,0.1);border-radius:6px;padding:14px;margin-bottom:16px;font-size:0.875rem;color:var(--text2);line-height:1.7">📡 ${narrative}</div>` : ''}
+      <div class="task-narrative-wrap">
+        <div class="task-narrative-label">${t('narrative_label')}</div>
+        <div class="task-narrative">${narrative ? narrative : '—'}</div>
+      </div>
       <div class="task-context-wrap">
         <div class="task-context-label">${t('context_label')}</div>
         <div class="task-context">${context ? context.replace(/\n/g,'<br>') : '—'}</div>
@@ -347,7 +351,8 @@ async function submitFlag(taskId) {
       input.className = 'flag-input correct';
       const bonusMsg = bonusPoints > 0 ? ` (+${bonusPoints} bonus!)` : '';
       resultEl.innerHTML = `<span class="flag-result correct">✓ ${t('correct')}</span>`;
-      showToast(`🎯 ${t('correct')} +${task.points + bonusPoints} pts${bonusMsg}`, 'success');
+      const totalEarnedNow = Math.round((task.points + bonusPoints) * 100) / 100;
+      showToast(`🎯 ${t('correct')} +${totalEarnedNow} pts${bonusMsg}`, 'success');
       input.disabled = true;
       updateScore();
       const card = document.getElementById(`ptask-${taskId}`);
@@ -366,7 +371,7 @@ function updateScore() {
   Object.values(userAnswers).forEach(a => {
     if (a.correct) { total += (a.points || 0) + (a.bonusPoints || 0); solved++; }
   });
-  document.getElementById('total-score').textContent = total;
+  document.getElementById('total-score').textContent = Number.isInteger(total) ? total : total.toFixed(2);
   const pct = tasksData.length > 0 ? (solved / tasksData.length) * 100 : 0;
   document.getElementById('ev-progress').style.width = pct + '%';
 }
@@ -393,7 +398,7 @@ async function loadScoreboard() {
       const d = doc.data();
       if (!byUser[d.userId]) byUser[d.userId] = { login: d.userLogin, total: 0, solved: 0, lastSolve: null };
       if (d.correct) {
-        byUser[d.userId].total += (d.points || 0) + (d.bonusPoints || 0);
+        byUser[d.userId].total = Math.round(((byUser[d.userId].total || 0) + (d.points || 0) + (d.bonusPoints || 0)) * 10000) / 10000;
         byUser[d.userId].solved++;
         const ts = d.solvedAt ? new Date(d.solvedAt) : null;
         if (ts && (!byUser[d.userId].lastSolve || ts > byUser[d.userId].lastSolve)) {
@@ -417,7 +422,7 @@ async function loadScoreboard() {
         <td class="rank-col" style="font-family:var(--font-mono)">${rankEmoji}</td>
         <td style="font-weight:${isMe ? 700 : 400}">${data.login}${isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(Ty)</span>' : ''}</td>
         <td>
-          <span class="score-col">${data.total}</span>
+          <span class="score-col">${Number.isInteger(data.total) ? data.total : data.total.toFixed(2)}</span>
           <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>
         </td>
         <td style="color:var(--text2)">${data.solved} / 15</td>

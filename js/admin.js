@@ -279,6 +279,10 @@ function buildAdminTaskCard(task, isEN) {
       <span class="task-chevron" id="chev-${task.id}">▼</span>
     </div>
     <div class="task-body" id="task-body-${task.id}" style="display:none">
+      <div class="task-narrative-wrap">
+        <div class="task-narrative-label">${isEN ? 'Scenario' : 'Scenariusz'}</div>
+        <div class="task-narrative">${isEN ? (task.narrativeEn || task.narrative || '—') : (task.narrative || '—')}</div>
+      </div>
       <div class="task-context-wrap">
         <div class="task-context-label">${isEN ? 'Context' : 'Kontekst'}</div>
         <div class="task-context">${task.context ? (isEN ? task.contextEn || task.context : task.context).replace(/\n/g,'<br>') : '—'}</div>
@@ -550,6 +554,10 @@ async function loadGlobalTasks() {
           <span class="task-chevron" id="gchev-${task.id}">▼</span>
         </div>
         <div class="task-body" id="gtask-body-${task.id}" style="display:none">
+          <div class="task-narrative-wrap">
+            <div class="task-narrative-label">${isEN ? 'Scenario' : 'Scenariusz'}</div>
+            <div class="task-narrative">${isEN ? (task.narrativeEn || task.narrative || '—') : (task.narrative || '—')}</div>
+          </div>
           <div class="admin-answer">✓ ${t('correct_answer')} <strong>${task.answer}</strong></div>
           ${task.images && task.images.length > 0 ? `
             <div class="task-images" style="margin-top:12px">
