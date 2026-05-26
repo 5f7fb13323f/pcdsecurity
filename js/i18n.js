@@ -126,6 +126,7 @@ const TRANSLATIONS = {
 
     // Nav & bonus
     nav_my_tasks: "Moje zadania",
+    context_label: "Kontekst",
     bonus_time_label: "bonus za czas",
     bonus_now: "teraz",
     workshop_started_toast: "🚀 Warsztat rozpoczęty! Powodzenia!",
@@ -350,6 +351,7 @@ const TRANSLATIONS = {
 
     // Nav & bonus
     nav_my_tasks: "Moje zadania",
+    context_label: "Kontekst",
     bonus_time_label: "bonus za czas",
     bonus_now: "teraz",
     workshop_started_toast: "🚀 Warsztat rozpoczęty! Powodzenia!",
@@ -357,6 +359,7 @@ const TRANSLATIONS = {
 
     // Nav & bonus
     nav_my_tasks: "My Tasks",
+    context_label: "Context",
     bonus_time_label: "time bonus",
     bonus_now: "now",
     workshop_started_toast: "🚀 Workshop started! Good luck!",

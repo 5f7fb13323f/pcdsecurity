@@ -279,7 +279,10 @@ function buildAdminTaskCard(task, isEN) {
       <span class="task-chevron" id="chev-${task.id}">▼</span>
     </div>
     <div class="task-body" id="task-body-${task.id}" style="display:none">
-      ${task.context ? `<div class="task-context">${(isEN ? task.contextEn : task.context).replace(/\n/g,'<br>')}</div>` : ''}
+      <div class="task-context-wrap">
+        <div class="task-context-label">${isEN ? 'Context' : 'Kontekst'}</div>
+        <div class="task-context">${task.context ? (isEN ? task.contextEn || task.context : task.context).replace(/\n/g,'<br>') : '—'}</div>
+      </div>
       <div class="task-question">${isEN ? (task.questionEn || task.question) : task.question}</div>
       <div class="task-format">${isEN && task.formatEn ? task.formatEn : task.format}</div>
       <div class="admin-answer">✓ ${t('correct_answer')} <strong>${task.answer}</strong></div>

@@ -281,7 +281,10 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
     </div>
     <div class="task-body" id="ptask-body-${task.id}" style="display:none">
       ${narrative ? `<div style="background:rgba(46,204,113,0.04);border:1px solid rgba(46,204,113,0.1);border-radius:6px;padding:14px;margin-bottom:16px;font-size:0.875rem;color:var(--text2);line-height:1.7">📡 ${narrative}</div>` : ''}
-      ${context ? `<div class="task-context">${context.replace(/\n/g,'<br>')}</div>` : ''}
+      <div class="task-context-wrap">
+        <div class="task-context-label">${t('context_label')}</div>
+        <div class="task-context">${context ? context.replace(/\n/g,'<br>') : '—'}</div>
+      </div>
       <div class="task-question">${question}</div>
       <div class="task-format">${isEN && task.formatEn ? task.formatEn : task.format}</div>
       ${task.images && task.images.length > 0 ? `
