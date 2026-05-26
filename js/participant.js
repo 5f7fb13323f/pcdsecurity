@@ -9,39 +9,32 @@ let userAnswers = {};
 let eventListener = null;
 
 // Time bonus thresholds (seconds from event start)
-const TIME_BONUS = [
-  { maxSecs: 300,  bonus: 0.50 },  // < 5 min  → +50% 🔥
-  { maxSecs: 900,  bonus: 0.40 },  // < 15 min → +40% ⚡
-  { maxSecs: 1800, bonus: 0.30 },  // < 30 min → +30% ⚡
-  { maxSecs: 2700, bonus: 0.20 },  // < 45 min → +20% ✓
-  { maxSecs: 3600, bonus: 0.15 },  // < 60 min → +15% ✓
-  { maxSecs: 5400, bonus: 0.10 },  // < 90 min → +10%
-  { maxSecs: 7200, bonus: 0.05 },  // < 2h    → +5%
-  { maxSecs: Infinity, bonus: 0 }, // after   → +0%
-];
+// Continuous time bonus — linear decay over 2 hours (7200 seconds)
+// Formula: bonus = basePoints × max(0, 1 - elapsed/7200)
+// Result: unique bonus for every second, no ties from time alone
+// At t=0s:    +100% bonus (2× points)
+// At t=600s:  +91.7%
+// At t=1800s: +75%
+// At t=3600s: +50%
+// At t=5400s: +25%
+// At t=7200s: +0%
+const BONUS_DURATION_SECS = 7200; // 2 hours
 
 function calcBonus(basePoints, startedAt) {
   if (!startedAt) return 0;
   const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
-  for (const tier of TIME_BONUS) {
-    if (elapsed <= tier.maxSecs) {
-      return Math.round(basePoints * tier.bonus);
-    }
-  }
-  return 0;
+  if (elapsed >= BONUS_DURATION_SECS) return 0;
+  const multiplier = 1 - (elapsed / BONUS_DURATION_SECS);
+  return Math.round(basePoints * multiplier);
 }
 
 function getBonusLabel(startedAt) {
   if (!startedAt) return '';
   const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
-  if (elapsed <= 300)  return '+50% 🔥';
-  if (elapsed <= 900)  return '+40% ⚡';
-  if (elapsed <= 1800) return '+30% ⚡';
-  if (elapsed <= 2700) return '+20% ✓';
-  if (elapsed <= 3600) return '+15% ✓';
-  if (elapsed <= 5400) return '+10%';
-  if (elapsed <= 7200) return '+5%';
-  return '+0%';
+  if (elapsed >= BONUS_DURATION_SECS) return '+0%';
+  const pct = Math.round((1 - elapsed / BONUS_DURATION_SECS) * 100);
+  const icon = pct >= 80 ? '🔥' : pct >= 50 ? '⚡' : pct >= 25 ? '✓' : '';
+  return `+${pct}% ${icon}`;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -107,16 +100,18 @@ async function initParticipantApp() {
   eventData = { id: evDoc.id, ...evDoc.data() };
 
   // Live listener — reacts to status changes (pending→active→finished)
-  eventListener = db.collection('events').doc(eventData.id).onSnapshot(snap => {
+  eventListener = db.collection('events').doc(eventData.id).onSnapshot(async snap => {
     const newData = snap.data();
-    const oldStatus = eventData.status;
+    const oldStatus = eventData.status || 'pending';
     eventData = { id: snap.id, ...newData };
+    const newStatus = newData.status || 'pending';
 
-    if (oldStatus === 'pending' && newData.status === 'active') {
-      // Workshop just started!
+    if (oldStatus === 'pending' && newStatus === 'active') {
+      // Workshop just started — show tasks page fully
       showToast('🚀 Warsztat rozpoczęty! Powodzenia!', 'success');
-      renderMainView();
-    } else if (newData.status === 'finished' && oldStatus !== 'finished') {
+      showParticipantPage('tasks');
+      await renderMainView();
+    } else if (newStatus === 'finished' && oldStatus !== 'finished') {
       document.getElementById('review-banner').style.display = 'flex';
       renderTasks();
       showToast('Wydarzenie zostało zakończone przez administratora', 'info');
@@ -127,8 +122,12 @@ async function initParticipantApp() {
   showParticipantPage('tasks');
 }
 
-function renderMainView() {
+async function renderMainView() {
   const status = eventData.status || 'pending';
+
+  // Make sure tasks page is visible
+  document.querySelectorAll('#app .main-content > div').forEach(p => p.style.display = 'none');
+  document.getElementById('p-page-tasks').style.display = 'block';
 
   // Hide all state views first
   document.getElementById('waiting-screen').style.display = 'none';
@@ -138,7 +137,7 @@ function renderMainView() {
   if (status === 'pending') {
     renderWaitingScreen();
   } else {
-    renderActiveView();
+    await renderActiveView();
   }
 }
 
@@ -237,7 +236,8 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
       const prevWrong = ans && !ans.correct;
       // Show current bonus available
       const bonusAvail = eventData.startedAt ? calcBonus(task.points, eventData.startedAt) : 0;
-      const bonusHint = bonusAvail > 0 ? `<span style="color:var(--accent4);font-size:0.78rem">⚡ Odpowiedz teraz: +${bonusAvail} pkt bonusu!</span>` : '';
+      const bonusPct = eventData.startedAt ? Math.round(Math.max(0, 1 - (Date.now() - new Date(eventData.startedAt).getTime()) / 1000 / BONUS_DURATION_SECS) * 100) : 0;
+      const bonusHint = bonusAvail > 0 ? `<span style="color:var(--accent4);font-size:0.78rem">⚡ ${getBonusLabel(eventData.startedAt)} bonus — +${bonusAvail} pkt teraz!</span>` : '';
       inputArea = `
         ${bonusHint}
         <div class="flag-input-wrap" style="margin-top:8px">
@@ -283,7 +283,7 @@ function buildParticipantTaskCard(task, ans, isSolved, isEN, isReview) {
       ${narrative ? `<div style="background:rgba(46,204,113,0.04);border:1px solid rgba(46,204,113,0.1);border-radius:6px;padding:14px;margin-bottom:16px;font-size:0.875rem;color:var(--text2);line-height:1.7">📡 ${narrative}</div>` : ''}
       ${context ? `<div class="task-context">${context.replace(/\n/g,'<br>')}</div>` : ''}
       <div class="task-question">${question}</div>
-      <div class="task-format">${task.format}</div>
+      <div class="task-format">${isEN && task.formatEn ? task.formatEn : task.format}</div>
       ${task.images && task.images.length > 0 ? `
         <div class="task-images">
           ${task.images.map(img => `<img class="task-thumb" src="${img.url}" alt="${img.name}" onclick="openLightbox('${img.url}')">`).join('')}

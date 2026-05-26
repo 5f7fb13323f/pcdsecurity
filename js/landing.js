@@ -70,8 +70,9 @@ async function loadPublicEvents() {
       const card = document.createElement('div');
       card.className = `event-card ${ev.status === 'finished' ? 'finished' : ''}`;
       const dateStr = ev.date || (ev.createdAt?.toDate ? ev.createdAt.toDate().toLocaleDateString(currentLang === 'pl' ? 'pl-PL' : 'en-US') : '');
-      const statusLabel = ev.status === 'finished' ? t('event_finished') : ev.status === 'pending' ? t('event_pending') : t('event_active');
-      const statusClass = ev.status === 'finished' ? 'finished' : ev.status === 'pending' ? 'pending' : 'active';
+      const _s = ev.status || 'pending';
+      const statusLabel = _s === 'finished' ? t('event_finished') : _s === 'pending' ? t('event_pending') : t('event_active');
+      const statusClass = _s === 'finished' ? 'finished' : _s === 'pending' ? 'pending' : 'active';
       card.innerHTML = `
         <div class="event-name">${ev.name}</div>
         <div class="event-meta">${dateStr ? `📅 ${dateStr}` : ''}</div>

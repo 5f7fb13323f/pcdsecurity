@@ -4,6 +4,19 @@
 
 let session = null;
 let currentEventId = null;
+
+// Normalize status: treat missing/null/undefined as 'pending'
+function normalizeStatus(s) {
+  if (!s || s === '') return 'pending';
+  return s;
+}
+
+function statusBadge(rawStatus) {
+  const s = normalizeStatus(rawStatus);
+  const cls = s === 'active' ? 'badge-green' : s === 'pending' ? 'badge-yellow' : 'badge-gray';
+  const label = s === 'active' ? t('event_active') : s === 'pending' ? t('event_pending') : t('event_finished');
+  return `<span class="badge ${cls}">${label}</span>`;
+}
 let currentEventData = null;
 let currentTasksData = {};
 
@@ -79,7 +92,7 @@ async function loadDashboard() {
         return `<tr>
           <td style="font-weight:600">${ev.name}</td>
           <td>${date}</td>
-          <td><span class="badge ${ev.status === 'active' ? 'badge-green' : ev.status === 'pending' ? 'badge-yellow' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : ev.status === 'pending' ? t('event_pending') : t('event_finished')}</span></td>
+          <td>${statusBadge(ev.status)}</td>
           <td><button class="btn-secondary btn-sm" onclick="openEventDetail('${doc.id}')">${t('btn_open')}</button></td>
         </tr>`;
       }).join('')}</tbody>
@@ -112,7 +125,7 @@ async function loadEvents() {
             <div style="font-size:0.8rem;color:var(--text2)">${ev.description || ''}</div>
             <div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-family:var(--font-mono)">${ev.date || ''}</div>
           </div>
-          <span class="badge ${ev.status === 'active' ? 'badge-green' : ev.status === 'pending' ? 'badge-yellow' : 'badge-gray'}">${ev.status === 'active' ? t('event_active') : ev.status === 'pending' ? t('event_pending') : t('event_finished')}</span>
+${statusBadge(ev.status)}
           <div style="display:flex;gap:8px">
             <button class="btn-secondary btn-sm" onclick="openEventDetail('${ev.id}')">${t('btn_manage')}</button>
             <button class="btn-secondary btn-sm" onclick="openScoreboard('${ev.id}')">🏆 Scoreboard</button>
@@ -217,9 +230,9 @@ async function openEventDetail(eventId) {
 
   document.getElementById('detail-event-name').textContent = currentEventData.name;
   document.getElementById('detail-event-meta').textContent =
-    `${currentEventData.date || ''} · ${currentEventData.status === 'active' ? t('event_active') : currentEventData.status === 'pending' ? t('event_pending') : t('event_finished')}`;
+    `${currentEventData.date || ''} · ${t(normalizeStatus(currentEventData.status) === 'active' ? 'event_active' : normalizeStatus(currentEventData.status) === 'pending' ? 'event_pending' : 'event_finished')}`;
 
-  const s = currentEventData.status || 'pending';
+  const s = normalizeStatus(currentEventData.status);
   document.getElementById('btn-start-event').style.display = (s === 'pending') ? '' : 'none';
   document.getElementById('btn-end-event').style.display = (s === 'active') ? '' : 'none';
   updateEventDetailMeta();
@@ -268,7 +281,7 @@ function buildAdminTaskCard(task, isEN) {
     <div class="task-body" id="task-body-${task.id}" style="display:none">
       ${task.context ? `<div class="task-context">${(isEN ? task.contextEn : task.context).replace(/\n/g,'<br>')}</div>` : ''}
       <div class="task-question">${isEN ? (task.questionEn || task.question) : task.question}</div>
-      <div class="task-format">${task.format}</div>
+      <div class="task-format">${isEN && task.formatEn ? task.formatEn : task.format}</div>
       <div class="admin-answer">✓ ${t('correct_answer')} <strong>${task.answer}</strong></div>
       ${task.images && task.images.length > 0 ? `
         <div class="task-images" style="margin-top:12px">
@@ -322,8 +335,11 @@ function openEditTask(taskId) {
           <label>${t('label_answer')}</label>${inp('edit-answer', task.answer, 'FLAG{...}')}
         </div>
         <div class="form-group">
-          <label>${t('label_format')}</label>${inp('edit-format', task.format, 'FLAG{Słowo}')}
+          <label>${t('label_format')} (PL)</label>${inp('edit-format', task.format, 'FLAG{Słowo}')}
         </div>
+      </div>
+      <div class="form-group">
+        <label>${t('label_format')} (EN)</label>${inp('edit-format-en', task.formatEn || task.format, 'FLAG{Word}')}
       </div>
       <div class="form-group">
         <label>${t('task_points')}</label>
@@ -411,6 +427,7 @@ async function saveTaskEdit(taskId) {
     narrativeEn:  g('edit-narrative-en'),
     answer:       g('edit-answer').trim(),
     format:       g('edit-format').trim(),
+    formatEn:     g('edit-format-en').trim() || g('edit-format').trim(),
   };
 
   // Collect images
@@ -480,7 +497,7 @@ async function endEvent() {
 
 function updateEventDetailMeta() {
   const statusMap = { pending: `⏳ ${t('event_pending')}`, active: `▶ ${t('event_active')}`, finished: `⏹ ${t('event_finished')}` };
-  const s = currentEventData.status || 'pending';
+  const s = normalizeStatus(currentEventData.status);
   document.getElementById('detail-event-meta').textContent =
     `${currentEventData.date || ''} · ${statusMap[s] || s}`;
 }
@@ -591,8 +608,11 @@ function openEditGlobalTask(taskId) {
           <label>${t('label_answer')}</label>${inp('gedit-answer', task.answer, 'FLAG{...}')}
         </div>
         <div class="form-group">
-          <label>${t('label_format')}</label>${inp('gedit-format', task.format, 'FLAG{Słowo}')}
+          <label>${t('label_format')} (PL)</label>${inp('gedit-format', task.format, 'FLAG{Słowo}')}
         </div>
+      </div>
+      <div class="form-group">
+        <label>${t('label_format')} (EN)</label>${inp('gedit-format-en', task.formatEn || task.format, 'FLAG{Word}')}
       </div>
       <div class="form-group">
         <label>${t('task_points')}</label>
@@ -669,6 +689,7 @@ async function saveGlobalTask(taskId) {
     narrativeEn: g('gedit-narrative-en'),
     answer:      g('gedit-answer').trim(),
     format:      g('gedit-format').trim(),
+    formatEn:    g('gedit-format-en').trim() || g('gedit-format').trim(),
   };
 
   const images = [];
