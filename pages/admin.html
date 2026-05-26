@@ -39,7 +39,7 @@
           <span class="icon">◉</span> <span data-i18n="nav_users">Użytkownicy</span>
         </a>
         <a class="nav-item" data-page="task-templates" onclick="showPage('task-templates')">
-          <span class="icon">📋</span> <span>Szablon zadań</span>
+          <span class="icon">📋</span> <span data-i18n="nav_task_templates">Szablon zadań</span>
         </a>
         <a class="nav-item" data-page="settings" onclick="showPage('settings')">
           <span class="icon">⚙</span> <span data-i18n="nav_settings">Ustawienia</span>
@@ -73,15 +73,15 @@
           </div>
         </div>
         <div class="stats-grid" id="dash-stats">
-          <div class="stat-card"><div class="stat-value" id="stat-events">—</div><div class="stat-label">Wydarzeń</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-users">—</div><div class="stat-label">Użytkowników</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-active">—</div><div class="stat-label">Aktywnych</div></div>
-          <div class="stat-card"><div class="stat-value">15</div><div class="stat-label">Zadań</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-events">—</div><div class="stat-label" data-i18n="stat_events">Wydarzeń</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-users">—</div><div class="stat-label" data-i18n="stat_users">Użytkowników</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-active">—</div><div class="stat-label" data-i18n="stat_active_label">Aktywnych</div></div>
+          <div class="stat-card"><div class="stat-value">15</div><div class="stat-label" data-i18n="stat_tasks">Zadań</div></div>
         </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title"><span class="card-icon">◈</span> Ostatnie wydarzenia</div>
-            <button class="btn-secondary btn-sm" onclick="showPage('events')">Zobacz wszystkie</button>
+            <button class="btn-secondary btn-sm" onclick="showPage('events')" data-i18n="see_all">Zobacz wszystkie</button>
           </div>
           <div id="dash-events-list"></div>
         </div>
@@ -115,8 +115,8 @@
           </div>
         </div>
         <div class="tabs">
-          <button class="tab-btn active" onclick="switchTab('tasks')">📋 Zadania (15)</button>
-          <button class="tab-btn" onclick="switchTab('participants')">👥 Uczestnicy</button>
+          <button class="tab-btn active" onclick="switchTab('tasks')" data-i18n="tab_tasks_15">📋 Zadania (15)</button>
+          <button class="tab-btn" onclick="switchTab('participants')" data-i18n="tab_participants">👥 Uczestnicy</button>
         </div>
         <!-- Tasks tab -->
         <div id="tab-tasks" class="tab-content active">
@@ -126,8 +126,8 @@
         <div id="tab-participants" class="tab-content">
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Przypisani uczestnicy</div>
-              <button class="btn-secondary btn-sm" onclick="openAssignModal()">+ Przypisz uczestnika</button>
+              <div class="card-title" data-i18n="assigned_participants">Przypisani uczestnicy</div>
+              <button class="btn-secondary btn-sm" onclick="openAssignModal()" data-i18n="btn_assign">+ Przypisz uczestnika</button>
             </div>
             <div id="participants-list"></div>
           </div>
@@ -161,15 +161,15 @@
       <div id="page-task-templates" class="page-section" style="display:none">
         <div class="page-header">
           <div>
-            <h1 class="page-title">📋 Szablon <span>zadań</span></h1>
-            <p class="page-subtitle">Konfiguruj obrazki i pliki raz — każde nowe wydarzenie je odziedziczy automatycznie</p>
+            <h1 class="page-title">📋 <span data-i18n="task_templates_title">Szablon zadań</span></h1>
+            <p class="page-subtitle" data-i18n="task_templates_subtitle">Konfiguruj obrazki i pliki raz — każde nowe wydarzenie je odziedziczy automatycznie</p>
           </div>
-          <button class="btn-secondary btn-sm" onclick="loadGlobalTasks()">↻ Odśwież</button>
+          <button class="btn-secondary btn-sm" onclick="loadGlobalTasks()" data-i18n="btn_refresh">↻ Odśwież</button>
         </div>
         <div class="card" style="margin-bottom:16px;padding:14px 20px;background:rgba(46,204,113,0.05);border-color:rgba(46,204,113,0.2)">
           <div style="display:flex;align-items:center;gap:10px;font-size:0.875rem;color:var(--accent)">
             <span>ℹ</span>
-            <span>Zmiany w szablonie globalnym <strong>nie aktualizują</strong> już istniejących wydarzeń — tylko nowo tworzonych. Aby zaktualizować istniejące wydarzenie, edytuj zadania bezpośrednio z poziomu danego wydarzenia.</span>
+            <span><span data-i18n="template_note">Zmiany w szablonie globalnym <strong>nie aktualizują</strong> już istniejących wydarzeń — tylko nowo tworzonych.</span></span>
           </div>
         </div>
         <div id="global-tasks-list" class="task-grid"></div>

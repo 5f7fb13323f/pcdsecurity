@@ -31,7 +31,7 @@
             <h3 data-i18n="hero_title1">Browar pod kontrolą</h3>
             <div class="form-group">
               <label data-i18n="username">Login</label>
-              <input type="text" id="p-login" placeholder="twój login" autocomplete="username">
+              <input type="text" id="p-login" placeholder="..." data-i18n-ph="login_placeholder" autocomplete="username">
             </div>
             <div class="form-group">
               <label data-i18n="password">Hasło</label>
@@ -46,7 +46,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
             <div class="user-login-link" style="margin-top:12px">
-              <a href="../index.html" style="color:var(--text3)">← Powrót</a>
+              <a href="../index.html" style="color:var(--text3)" data-i18n="btn_back">← Powrót</a>
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@
             <h1 class="page-title">🏆 <span data-i18n="scoreboard"><span data-i18n="scoreboard">Tabela wyników</span></h1>
             <p class="page-subtitle"><span class="badge badge-green" id="live-badge">LIVE</span></p>
           </div>
-          <button class="btn-secondary btn-sm" onclick="loadScoreboard()">↻ Odśwież</button>
+          <button class="btn-secondary btn-sm" onclick="loadScoreboard()" data-i18n="btn_refresh">↻ Odśwież</button>
         </div>
         <div class="card">
           <table class="scoreboard-table">
